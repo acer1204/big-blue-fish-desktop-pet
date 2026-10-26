@@ -18,6 +18,16 @@
 - **台灣天氣**：Windows 版的天氣地點改為「縣市 → 鄉鎮市區」兩層選單（22 個縣市、368 個鄉鎮市區），新安裝的預設地點為臺北市中正區。天氣資料改用[中央氣象署開放資料](https://opendata.cwa.gov.tw/)的鄉鎮天氣預報，需要自行申請並在設定中填入授權碼；填入之前，台灣地點（包括預設的臺北市中正區）不會有天氣資料，也不會改用 Open-Meteo。原本的 Open-Meteo 天氣仍保留給非台灣地點（先前儲存或透過 MCP 設定的）與 Linux 版使用。Linux 版沒有授權碼欄位，所以不會出現本分支新增的氣象署縣市清單，MCP 也不能把 Linux 版設成台灣鄉鎮；原有地區資料中的「台湾省」仍會出現，但和原版一樣沒有座標，選了也不會有天氣資料。
 - **金鑰保護**：遠端 API Key 與氣象署授權碼以目前的 Windows 帳戶加密（DPAPI）後儲存，而且不會出現在 MCP 的 `get_settings` 結果中。這可以防止設定檔被複製到其他帳戶或電腦後讀出金鑰，但同一個 Windows 帳戶下執行的其他程式仍然可以解密。
 - **測試同步**：`code/tests/` 中比對介面文字的測試程式也隨之改為繁體中文。
+- **Hermes 對話橋接**：新增 `code/BigBlueFish.HermesBridge`（C#）與 `code/run-hermes-bridge.ps1`。雙擊魚魚在輸入框打的字，會交給本機的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) API 回答，回答再顯示在魚魚的氣泡裡；等待時魚魚會播放思考動作。同一段對話會延續上下文，連重新啟動橋接程式後也接得上；在輸入框打 `/new` 會開始新的對話，但 Hermes 寫進長期記憶的內容（例如被要求「記住」的事）不會因此清掉。
+
+### 使用 Hermes 對話橋接
+
+1. 桌寵設定的「Agent 與 MCP」開啟「開啟 MCP 介面」與「雙擊與魚魚對話」。不需要開啟「提線木偶模式」；開了的話魚魚會停止自己說話和切換動作，橋接程式關閉後也要手動關掉才會恢復。
+2. Hermes 的 `.env` 設定一組 16 字元以上的 `API_SERVER_KEY`，重新啟動 Hermes gateway（`hermes gateway restart -y`），讓 API 介面在 `http://127.0.0.1:8642` 啟動。
+3. 執行 `./code/run-hermes-bridge.ps1`（會先編譯再啟動）。橋接程式會自動尋找 `BigBlueFish.Mcp.exe`，並從 Hermes 的 `.env` 讀取金鑰，不會把金鑰寫到其他地方或顯示出來。
+4. 雙擊魚魚輸入訊息，按「送出」或 Ctrl+Enter。
+
+注意：Hermes 回答時可以使用它所有的工具，包括在這台電腦執行終端機指令與修改檔案；能在魚魚輸入框打字的人，就能請 Hermes 做這些事。橋接程式啟動時若發現 Hermes 開著這類工具組，會先顯示提醒。訊息也會送到 Hermes 設定的模型服務。請只在自己的電腦上使用，並視需要在 Hermes 的設定中限制 API 平台可用的工具。
 
 ### 新增或移除的第三方內容
 
@@ -37,16 +47,23 @@
 
 ### 修改過的檔案
 
-以下 64 個檔案由 acer1204 於 2026 年 10 月 26 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
+以下 71 個檔案由 acer1204 於 2026 年 10 月 26 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
 
 <details>
 <summary>展開檔案清單</summary>
 
-**新增（4）**
+**新增（11）**
 
+- `code/BigBlueFish.HermesBridge/BigBlueFish.HermesBridge.csproj`
+- `code/BigBlueFish.HermesBridge/Bridge.cs`
+- `code/BigBlueFish.HermesBridge/HermesChat.cs`
+- `code/BigBlueFish.HermesBridge/PetLink.cs`
+- `code/BigBlueFish.HermesBridge/Program.cs`
+- `code/BigBlueFish.HermesBridge/packages.lock.json`
 - `code/BigBlueFish.Windows/Res/Font/jf-openhuninn-2.1.ttf`
 - `code/BigBlueFish.Windows/assets/regions/taiwan-regions.json`
 - `code/licenses/jf-open-huninn-OFL.txt`
+- `code/run-hermes-bridge.ps1`
 - `code/tools/import-taiwan-regions.py`
 
 **刪除（2）**
