@@ -1,6 +1,10 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Text.Json;
+#if !COMPANION_LINUX
+using System.Security.Cryptography;
+#endif
 
 namespace BigBlueFish.Windows;
 internal sealed class CompanionPreferences
@@ -15,7 +19,11 @@ internal sealed class CompanionPreferences
     public bool McpEnabled { get; set; }
     public bool PuppetMode { get; set; }
     public bool McpChatEnabled { get; set; }
+#if COMPANION_LINUX
     public string WeatherRegionCode { get; set; } = CompanionRegions.DefaultCode;
+#else
+    public string WeatherRegionCode { get; set; } = CompanionRegions.TaiwanDefaultCode;
+#endif
     public double Scale { get; set; } = 1;
     public double BubbleScale { get; set; } = 1;
     public int SpeechMinMinutes { get; set; } = 10;
@@ -60,13 +68,48 @@ internal sealed class CompanionPreferences
         "10秒",
         "15秒",
         "30秒",
-        "1分钟",
-        "2分钟",
-        "3分钟",
+        "1分鐘",
+        "2分鐘",
+        "3分鐘",
         "直至下一句"
     };
     public double? Left { get; set; }
     public double? Top { get; set; }
+    public string ModelSource { get; set; } = "Local";
+    public string RemoteUrl { get; set; } = "";
+    public string RemoteModel { get; set; } = "";
+    public string? RemoteApiKeyProtected { get; set; }
+    public bool ScreenImages { get; set; }
+    public string? CwaApiKeyProtected { get; set; }
+
+    // Secrets never appear in MCP get_settings; any process of this user could decrypt them.
+    internal static readonly string[] PrivateSettings = [nameof(RemoteApiKeyProtected), nameof(CwaApiKeyProtected)];
+    internal string CwaApiKey { get => Reveal(CwaApiKeyProtected); set => CwaApiKeyProtected = Conceal(value); }
+    internal bool UseRemoteModel => ModelSource == "Remote" && Uri.TryCreate(RemoteUrl.Trim(), UriKind.Absolute, out var url) && url.Scheme is "http" or "https";
+    internal string RemoteApiKey { get => Reveal(RemoteApiKeyProtected); set => RemoteApiKeyProtected = Conceal(value); }
+    internal static string? Conceal(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var bytes = Encoding.UTF8.GetBytes(value.Trim());
+#if COMPANION_LINUX
+        return Convert.ToBase64String(bytes); // The Linux data directory is already private to the user.
+#else
+        return Convert.ToBase64String(ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser));
+#endif
+    }
+    internal static string Reveal(string? stored)
+    {
+        if (string.IsNullOrEmpty(stored)) return "";
+        try
+        {
+#if COMPANION_LINUX
+            return Encoding.UTF8.GetString(Convert.FromBase64String(stored));
+#else
+            return Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(stored), null, DataProtectionScope.CurrentUser));
+#endif
+        }
+        catch { return ""; }
+    }
 
     public static CompanionPreferences Read()
     {
@@ -97,6 +140,8 @@ internal sealed class CompanionPreferences
                     s.SpeechMinMinutes = NormalizeSpeechMinimum(s.SpeechMinMinutes);
                     s.BubbleDurationIndex = Math.Clamp(s.BubbleDurationIndex, 0, BubbleDurations.Length - 1);
                     s.WeatherRegionCode = CompanionRegions.District(s.WeatherRegionCode).Code;
+                    s.ModelSource = s.ModelSource == "Remote" ? "Remote" : "Local";
+                    s.RemoteUrl ??= ""; s.RemoteModel ??= "";
                     return s;
                 }
             }

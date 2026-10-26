@@ -25,10 +25,10 @@ internal class ModernWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = new SolidColorBrush(Color.FromRgb(246, 247, 251));
         Foreground = new SolidColorBrush(Color.FromRgb(38, 51, 76));
-        FontFamily = new FontFamily("Microsoft YaHei UI"); FontSize = 14;
+        FontFamily = new FontFamily("Microsoft JhengHei UI"); FontSize = 14;
         using var stream = typeof(ModernWindow).Assembly.GetManifestResourceStream("BigBlueFish.ModernTheme.xaml")!;
         Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
-        Body.Children.Add(new TextBlock { Text = "蓝色大肥鱼", Foreground = ModernUI.Blue, FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
+        Body.Children.Add(new TextBlock { Text = "藍色大肥魚", Foreground = ModernUI.Blue, FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
         Body.Children.Add(new TextBlock { Text = heading, FontSize = 26, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 12) });
         Body.Children.Add(ModernUI.Text(description));
         var shell = new DockPanel { Background = Background }; DockPanel.SetDock(Actions, Dock.Bottom); shell.Children.Add(Actions);
@@ -58,5 +58,5 @@ internal static class ModernUI
         { int selected = i; dialog.Actions.Children.Add(Button(labels[i], () => { result = selected; dialog.Close(); }, i == 0)); }
         dialog.ShowDialog(); return result;
     }
-    internal static void Error(Window? owner, string title, Exception error) => Choice(owner, title, error.Message, "确定");
+    internal static void Error(Window? owner, string title, Exception error) => Choice(owner, title, error.Message, "確定");
 }

@@ -35,19 +35,19 @@ internal static class NewsVerification
         string item(string title, string date, string summary = "摘要") =>
             $"<item><title>{title}</title><pubDate>{date}</pubDate><description><![CDATA[{summary}]]></description></item>";
         var now = new DateTimeOffset(2026, 10, 14, 12, 0, 0, TimeSpan.Zero);
-        var feed = "<rss><channel>" + item("新芯片疑似曝光？", now.ToString("r"), "<p>原文<b>传闻</b> &amp; 摘要</p><script>bad()</script>")
-            + item("新芯片疑似曝光？", now.ToString("r")) + item("短标题", now.ToString("r"))
-            + item("未来文章", now.AddHours(1).ToString("r")) + item("过期文章", now.AddDays(-3).ToString("r"))
+        var feed = "<rss><channel>" + item("新晶片疑似曝光？", now.ToString("r"), "<p>原文<b>傳聞</b> &amp; 摘要</p><script>bad()</script>")
+            + item("新晶片疑似曝光？", now.ToString("r")) + item("短標題", now.ToString("r"))
+            + item("未來文章", now.AddHours(1).ToString("r")) + item("過期文章", now.AddDays(-3).ToString("r"))
             + item("", now.ToString("r")) + "</channel></rss>";
         var items = CompanionNews.ReadFeed(feed, now);
-        Check(items.Length == 2 && items.Any(i => i.Title == "短标题"), "headlines no longer require length, keywords or certainty filters; freshness and deduplication retained");
-        Check(items[0].Summary == "原文 传闻 & 摘要" && items[0].Context.Contains("IT之家"), "RSS summary is readable plain text with source and date");
+        Check(items.Length == 2 && items.Any(i => i.Title == "短標題"), "headlines no longer require length, keywords or certainty filters; freshness and deduplication retained");
+        Check(items[0].Summary == "原文 傳聞 & 摘要" && items[0].Context.Contains("IT之家"), "RSS summary is readable plain text with source and date");
         var messages = CompanionBrain.BuildMessages(CompanionBrain.NewsPersona, CompanionBrain.NewsRequest(items[0].Context));
         Check(messages.Length == 2 && messages[0].role == "system" && messages[1].role == "user", "news uses standard system and user roles");
-        Check(!((string)messages[0].content).Contains("语气演示") && !((string)messages[0].content).Contains("新衣服")
-            && !((string)messages[0].content).Contains("屏幕资料"), "news system prompt is independent from ordinary speech examples and screen guidance");
+        Check(!((string)messages[0].content).Contains("語氣演示") && !((string)messages[0].content).Contains("新衣服")
+            && !((string)messages[0].content).Contains("螢幕資料"), "news system prompt is independent from ordinary speech examples and screen guidance");
         Check(((string)messages[1].content).Contains(items[0].Summary), "news request preserves factual summary");
-        string longer = "主人，" + string.Concat(Enumerable.Repeat("一条新闻", 30)) + "。请关注后续消息。";
+        string longer = "主人，" + string.Concat(Enumerable.Repeat("一條新聞", 30)) + "。請關注後續訊息。";
         Check(CompanionBrain.Clean(longer).Length < 100,
             "news retains the ordinary bubble safety length limit");
         Console.WriteLine($"RESULT {checks} news rule and message checks passed");
@@ -125,14 +125,14 @@ internal static class NewsVerification
                     task.GetAwaiter().GetResult();
                     string text = ((TextBlock)Field(window, "bubbleText")).Text;
                     Console.WriteLine("REAL NEWS " + text);
-                    Check(text.StartsWith("主人") && brain.Status == "本地模型就绪", "actual news reaches bubble and addresses owner");
+                    Check(text.StartsWith("主人") && brain.Status == "本機模型就緒", "actual news reaches bubble and addresses owner");
                     Check(text.EnumerateRunes().Count() <= 80 && !text.EndsWith("…"), "actual news remains within a small bubble without ellipsis truncation");
                     Check(!ring.Running && !ring.HasAnimatedProperties, "completion releases all loading animation clocks");
                     var request = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "model-request.json")));
                     var payload = request.RootElement;
                     var system = payload.GetProperty("messages")[0].GetProperty("content").GetString();
                     string context = payload.GetProperty("messages")[1].GetProperty("content").GetString()!;
-                    Check(system == CompanionBrain.NewsPersona && !context.Contains("屏幕资料") && context.Contains("新闻摘要"), "actual model request contains only independent news instructions and current RSS facts");
+                    Check(system == CompanionBrain.NewsPersona && !context.Contains("螢幕資料") && context.Contains("新聞摘要"), "actual model request contains only independent news instructions and current RSS facts");
                     Check(payload.GetProperty("temperature").GetDouble() == .35 && payload.GetProperty("max_tokens").GetInt32() == 160,
                         "actual news request uses factual generation settings and compact output budget");
                     records.Add(new { context, text, firstMilliseconds = first, totalMilliseconds = watch.Elapsed.TotalMilliseconds });

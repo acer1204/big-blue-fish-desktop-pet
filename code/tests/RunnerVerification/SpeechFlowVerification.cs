@@ -82,7 +82,7 @@ internal static class SpeechFlowVerification
             var settingsWindow = (Window)Field(window, "companionSettings")!;
             var sliders = Children<Slider>(settingsWindow).ToArray();
             var scaleSlider = sliders.Single(s => s.Minimum == .5 && s.Maximum == 2.0
-                && System.Windows.Automation.AutomationProperties.GetName(s) != "文字气泡大小");
+                && System.Windows.Automation.AutomationProperties.GetName(s) != "文字氣泡大小");
             Check(scaleSlider.TickFrequency == .05, "50%-200% settings slider uses 5% steps");
             foreach (var scale in new[] { .5, 2.0, .85 })
             {
@@ -94,10 +94,10 @@ internal static class SpeechFlowVerification
                 Check(window.Left + body.Left >= work.Left - 1 && window.Top + body.Top >= work.Top - 1,
                     "visible character stays inside desktop at scale " + scale);
             }
-            Children<System.Windows.Controls.Button>(settingsWindow).Single(b => (string?)b.Content == "说话与天气")
+            Children<System.Windows.Controls.Button>(settingsWindow).Single(b => (string?)b.Content == "說話與天氣")
                 .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); Pump(100);
-            var frequency = Children<ComboBox>(settingsWindow).Single(c => c.Items.Count == 6 && c.Items[0].ToString()!.StartsWith("说话间隔"));
-            Check(frequency.Items.Cast<string>().SequenceEqual(new[] { "说话间隔：2–3 分钟", "说话间隔：3–5 分钟", "说话间隔：5–8 分钟", "说话间隔：10–16 分钟", "说话间隔：15–23 分钟", "说话间隔：20–30 分钟" }), "all six exact interval labels appear");
+            var frequency = Children<ComboBox>(settingsWindow).Single(c => c.Items.Count == 6 && c.Items[0].ToString()!.StartsWith("說話間隔"));
+            Check(frequency.Items.Cast<string>().SequenceEqual(new[] { "說話間隔：2–3 分鐘", "說話間隔：3–5 分鐘", "說話間隔：5–8 分鐘", "說話間隔：10–16 分鐘", "說話間隔：15–23 分鐘", "說話間隔：20–30 分鐘" }), "all six exact interval labels appear");
             frequency.SelectedIndex = 0; Pump();
             var remaining = ((DateTime)Field(window, "nextSpeech")! - DateTime.UtcNow).TotalMinutes;
             Check(remaining >= 1.99 && remaining <= 3, "changing range reschedules with the same selected bounds");
@@ -120,21 +120,21 @@ internal static class SpeechFlowVerification
             }, "real test finishes through production streaming handler", 45);
             task.GetAwaiter().GetResult(); warmup.GetAwaiter().GetResult();
             var text = ((TextBlock)Field(window, "bubbleText")!).Text;
-            Check(text.Length > 0 && brain.Status == "本地模型就绪", "real model reply reaches the visible bubble");
+            Check(text.Length > 0 && brain.Status == "本機模型就緒", "real model reply reaches the visible bubble");
             Console.WriteLine($"REAL BUBBLE first={first:0.000}s total={watch.Elapsed.TotalSeconds:0.000}s {text}");
             // A window disappearing between resolution and capture is a real capture failure.
             Set(window, "speechForegroundOverride", new IntPtr(-123));
             var failed = (Task)Invoke(window, "SpeechCountdownZeroAsync")!;
             Wait(() => failed.IsCompleted, "shared countdown pipeline completes capture failure", 10);
             failed.GetAwaiter().GetResult();
-            Check(brain.Status.Contains("未能读取"), "fault injection reaches actual OCR capture failure");
+            Check(brain.Status.Contains("未能讀取"), "fault injection reaches actual OCR capture failure");
             Check(((Border)Field(window, "bubble")!).Visibility != Visibility.Visible, "capture failure produces no debug/error speech bubble");
             Check(!(bool)Field(window, "speechRequestPending")! && ((FrameworkElement)Field(window, "loadingIndicator")!).Visibility != Visibility.Visible,
                 "failure releases request gate and loading animation");
             var recovery = (Task)Invoke(window, "SpeakCompanionTest")!;
             Wait(() => recovery.IsCompleted, "test retries successfully after capture failure", 35);
             recovery.GetAwaiter().GetResult();
-            Check(((TextBlock)Field(window, "bubbleText")!).Text.Length > 0 && brain.Status == "本地模型就绪", "subsequent real speech recovers without app restart");
+            Check(((TextBlock)Field(window, "bubbleText")!).Text.Length > 0 && brain.Status == "本機模型就緒", "subsequent real speech recovers without app restart");
             Console.WriteLine("REAL RECOVERY " + ((TextBlock)Field(window, "bubbleText")!).Text);
             Console.WriteLine($"RESULT {checks} interval/scale/shared speech checks passed; real GPU model, no canned speech");
             return 0;

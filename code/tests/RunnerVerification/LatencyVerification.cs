@@ -43,7 +43,7 @@ internal static class LatencyVerification
         var app = new Application();
         var text = new TextBlock { FontSize = 18, Foreground = Brushes.Black, Background = Brushes.White,
             TextWrapping = TextWrapping.Wrap, Margin = new Thickness(25) };
-        var window = new Window { Title = "蓝色大肥鱼代码开发 · 首字时间验收", Width = 1120, Height = 840,
+        var window = new Window { Title = "藍色大肥魚程式碼開發 · 首字時間驗收", Width = 1120, Height = 840,
             Left = 20, Top = 20, Content = new ScrollViewer { Content = text }, Background = Brushes.White };
         string previous = "";
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
@@ -54,7 +54,7 @@ internal static class LatencyVerification
             if (!File.Exists(scene)) return;
             var current = File.ReadAllText(scene);
             if (current == previous) return;
-            previous = current; text.FontSize = current.StartsWith("密集页面") ? 14 : 18;
+            previous = current; text.FontSize = current.StartsWith("密集頁面") ? 14 : 18;
             text.Text = current; window.Activate();
             window.UpdateLayout();
             File.WriteAllText(Path.Combine(root, "fixture-ready"), current.Length.ToString());
@@ -101,17 +101,17 @@ internal static class LatencyVerification
             fixture = Process.Start(start)!;
             Wait(() => File.Exists("fixture-hwnd"), 15, "Screen fixture did not start");
             var handle = new IntPtr(long.Parse(File.ReadAllText("fixture-hwnd")));
-            string summary = "蓝色大肥鱼项目开发\n\n主人正在排查本地模型加载和首字等待时间，验证不同电脑上的运行表现。\n当前任务：修复显存分配，检查读屏、文字识别、流式气泡显示。\n";
+            string summary = "藍色大肥魚專案開發\n\n主人正在排查本機模型載入和首字等待時間，驗證不同電腦上的執行表現。\n目前任務：修復顯示記憶體分配，檢查讀屏、文字辨識、流式氣泡顯示。\n";
             string[] rows = [
-                "模型运行：保留用户已有模型和设置，检查健康状态与进程退出。",
-                "读屏流程：捕获真正的前台窗口，识别界面文字并按位置整理。",
-                "气泡显示：模型返回文字后立即显示，记录第一个字出现的时间。",
-                "下载任务：暂停时保留未完成内容，重试后继续下载并校验。",
-                "兼容检查：根据设备可用显存选择计算缓冲，避免显存不足。"
+                "模型執行：保留使用者已有模型和設定，檢查健康狀態與程式退出。",
+                "讀屏流程：捕獲真正的前臺視窗，辨識介面文字並按位置整理。",
+                "氣泡顯示：模型返回文字後立即顯示，記錄第一個字出現的時間。",
+                "下載任務：暫停時保留未完成內容，重試後繼續下載並校驗。",
+                "相容檢查：根據裝置可用顯示記憶體選擇計算緩衝，避免顯示記憶體不足。"
             ];
             for (int i = 0; i < 10; i++)
             {
-                string scene = (i >= 8 ? "密集页面\n" : "") + $"场景 {i + 1}\n" + summary + string.Join("\n", Enumerable.Range(0, i >= 8 ? 40 : new[] { 0, 8, 24 }[i % 3])
+                string scene = (i >= 8 ? "密集頁面\n" : "") + $"場景 {i + 1}\n" + summary + string.Join("\n", Enumerable.Range(0, i >= 8 ? 40 : new[] { 0, 8, 24 }[i % 3])
                     .Select(n => $"{n + 1:00}. {rows[n % rows.Length]}"));
                 File.WriteAllText("scene.txt", scene);
                 Wait(() => File.Exists("fixture-ready") && File.ReadAllText("fixture-ready") == scene.Length.ToString()
@@ -132,7 +132,7 @@ internal static class LatencyVerification
                 if (first == null) throw new Exception("No actual bubble text: " + brain.Status);
                 var diagnostic = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "ocr-status.json"))).RootElement.Clone();
                 if (diagnostic.GetProperty("windowHandle").GetInt64() != handle.ToInt64()
-                    || !diagnostic.GetProperty("request").GetString()!.Contains("蓝色大肥鱼"))
+                    || !diagnostic.GetProperty("request").GetString()!.Contains("藍色大肥魚"))
                     throw new Exception("Production OCR did not read the intended visible content");
                 var image = CompanionScreenCapture.Capture(handle, 2560, true)!;
                 File.WriteAllBytes($"scene-{i + 1}.png", Convert.FromBase64String(image.DataUrl[(image.DataUrl.IndexOf(',') + 1)..]));

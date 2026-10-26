@@ -26,7 +26,7 @@ internal static class CompanionOcr
             token.ThrowIfCancellationRequested();
             var watch = Stopwatch.StartNew();
             var image = CompanionScreenCapture.Capture(handle, Math.Min(2560, (int)OcrEngine.MaxImageDimension), true)
-                ?? throw new IOException("未能读取当前窗口画面");
+                ?? throw new IOException("未能讀取目前視窗畫面");
             var identity = CompanionNative.ForegroundIdentity(handle);
             double captureMs = watch.Elapsed.TotalMilliseconds;
             var result = await RecognizeAsync(image, identity, captureMs, token, CompanionNative.IsDesktopWindow(handle)).ConfigureAwait(false);
@@ -43,9 +43,9 @@ internal static class CompanionOcr
             ?? languages.FirstOrDefault(x => x.LanguageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             ?? languages.FirstOrDefault();
         if (language == null)
-            throw new IOException("Windows 尚未安装文字识别语言，请在语言设置中安装简体中文文字识别");
+            throw new IOException("Windows 尚未安裝文字辨識語言，請在語言設定中安裝簡體中文文字辨識");
         var engine = OcrEngine.TryCreateFromLanguage(new Language(language.LanguageTag))
-            ?? throw new IOException("无法启动本地文字识别");
+            ?? throw new IOException("無法啟動本地文字辨識");
         var bytes = Convert.FromBase64String(image.DataUrl[(image.DataUrl.IndexOf(',') + 1)..]);
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
@@ -67,7 +67,7 @@ internal static class CompanionOcr
         // Small shadowed labels produce unreliable OCR; keep the captured scene identity
         // rather than presenting those fragments as the owner's current topic.
         var context = desktop
-            ? identity + "\n画面是壁纸与快捷方式图标，没有展开的应用正文。"
+            ? identity + "\n畫面是桌布與捷徑圖示，沒有展開的應用正文。"
             : identity + "\n" + CompanionOcrLayout.Format(words, image.Width, image.Height);
         return new CompanionOcrSnapshot(context, language.LanguageTag, image.Width, image.Height,
             words.Length, captureMs, recognizeMs, words, IsDesktop: desktop);

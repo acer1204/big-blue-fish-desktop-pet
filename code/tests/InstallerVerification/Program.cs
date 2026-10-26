@@ -34,7 +34,7 @@ internal static class Checks
             var limit = DateTime.UtcNow.AddSeconds(20);
             do { Thread.Sleep(100); process.Refresh(); }
             while (!process.HasExited && process.MainWindowHandle == IntPtr.Zero && DateTime.UtcNow < limit);
-            Check(!process.HasExited && process.MainWindowTitle.Contains("安装程序"), "actual setup starts installation window independently");
+            Check(!process.HasExited && process.MainWindowTitle.Contains("安裝程式"), "actual setup starts installation window independently");
             Check(process.CloseMainWindow() && process.WaitForExit(5000), "cancelling actual installer leaves installation unchanged");
         }
         finally { if (!process.HasExited) { process.Kill(); process.WaitForExit(5000); } }
@@ -53,15 +53,15 @@ internal static class Checks
             var limit = DateTime.UtcNow.AddSeconds(20);
             do { Thread.Sleep(100); process.Refresh(); }
             while (!process.HasExited && process.MainWindowHandle == IntPtr.Zero && DateTime.UtcNow < limit);
-            Check(!process.HasExited && process.MainWindowTitle == "卸载蓝色大肥鱼",
+            Check(!process.HasExited && process.MainWindowTitle == "解除安裝藍色大肥魚",
                 explicitArguments ? "registered command opens actual uninstall window" : "zero-argument Uninstall.exe opens actual uninstall window from unrelated working directory");
             var window = AutomationElement.FromHandle(process.MainWindowHandle);
             var box = window.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.CheckBox));
-            Check(box != null && box.Current.Name == "保留模型和设置" && ((TogglePattern)box.GetCurrentPattern(TogglePattern.Pattern)).Current.ToggleState == ToggleState.Off,
+            Check(box != null && box.Current.Name == "保留模型和設定" && ((TogglePattern)box.GetCurrentPattern(TogglePattern.Pattern)).Current.ToggleState == ToggleState.Off,
                 "actual standalone uninstall window has unchecked retain-data checkbox");
             Check(window.FindFirst(TreeScope.Descendants, new AndCondition(
                 new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
-                new PropertyCondition(AutomationElement.NameProperty, "卸载"))) != null, "actual window offers uninstall button");
+                new PropertyCondition(AutomationElement.NameProperty, "解除安裝"))) != null, "actual window offers uninstall button");
             Check(process.CloseMainWindow() && process.WaitForExit(5000), "cancel closes actual uninstaller without executing removal");
             Check(File.Exists(executable) && File.Exists(Path.Combine(target, "preferences.json")), "cancelling uninstall preserves application and settings");
         }
@@ -84,11 +84,11 @@ internal static class Checks
             while (!process.HasExited && process.MainWindowHandle == IntPtr.Zero && DateTime.UtcNow < limit);
             Check(!process.HasExited && process.MainWindowHandle != IntPtr.Zero, "actual uninstall worker reaches completion dialog");
             var dialog = AutomationElement.FromHandle(process.MainWindowHandle);
-            Check(dialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "蓝色大肥鱼已卸载。")) != null,
+            Check(dialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "藍色大肥魚已解除安裝。")) != null,
                 "actual standalone worker reports successful removal");
             var ok = dialog.FindFirst(TreeScope.Descendants, new AndCondition(
                 new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
-                new PropertyCondition(AutomationElement.NameProperty, "确定")));
+                new PropertyCondition(AutomationElement.NameProperty, "確定")));
             ((InvokePattern)ok!.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
             Check(process.WaitForExit(5000) && process.ExitCode == 0, "actual standalone worker exits successfully");
         }

@@ -69,8 +69,10 @@ public partial class MainWindow
         {
             UseGpu = preferences.GpuEnabled,
             StopOnBattery = preferences.StopModelOnBattery,
-            WeatherRegionCode = preferences.WeatherRegionCode
+            WeatherRegionCode = preferences.WeatherRegionCode,
+            CwaApiKey = preferences.CwaApiKey
         };
+        ApplyCompanionModelSource();
         InitializeComponent();
         System.Windows.Shell.WindowChrome.SetWindowChrome(this, null);
         AllowsTransparency = true;
@@ -79,7 +81,7 @@ public partial class MainWindow
         ShowActivated = false;
         ShowInTaskbar = false;
         Topmost = true;
-        Title = "蓝色大肥鱼";
+        Title = "藍色大肥魚";
         ResizeMode = ResizeMode.NoResize;
         SizeToContent = SizeToContent.Manual;
         companionLayout = new Grid
@@ -92,7 +94,7 @@ public partial class MainWindow
             FontSize = 17,
             Foreground = new SolidColorBrush(global::BigBlueFish.Windows.CompanionBubble.HairBlue),
             FontFamily = new FontFamily(new Uri("pack://application:,,,/BigBlueFish;component/"),
-                "./Res/Font/#乐米小奶泡体"),
+                "./Res/Font/#jf-openhuninn-2.1"),
             Focusable = false
         };
         var bubbleContent = new Grid();
@@ -110,7 +112,7 @@ public partial class MainWindow
             Focusable = false,
             IsTabStop = false,
             Cursor = Cursors.Hand,
-            ToolTip = "关闭气泡",
+            ToolTip = "關閉氣泡",
             Content = new TextBlock
             {
                 Text = "\uE711",
@@ -121,7 +123,7 @@ public partial class MainWindow
                 VerticalAlignment = VerticalAlignment.Center
             }
         };
-        System.Windows.Automation.AutomationProperties.SetName(dismiss, "关闭气泡");
+        System.Windows.Automation.AutomationProperties.SetName(dismiss, "關閉氣泡");
         dismiss.Click += (_, e) =>
         {
             e.Handled = true;
@@ -221,7 +223,7 @@ public partial class MainWindow
         catch (Exception e)
         {
             File.WriteAllText("companion-errors.log", e.ToString());
-            ShowCompanionNotice("动画未能加载，请检查文件是否完整。");
+            ShowCompanionNotice("動畫未能載入，請檢查檔案是否完整。");
         }
         return Task.CompletedTask;
     }
@@ -263,6 +265,14 @@ public partial class MainWindow
             ApplyCompanionPowerPolicy();
             nextSpeech = DateTime.UtcNow.Add(preferences.NextSpeechDelay(companionRandom));
         });
+    }
+
+    private void ApplyCompanionModelSource()
+    {
+        brain.UseRemoteModel(preferences.UseRemoteModel ? preferences.RemoteUrl : null, preferences.RemoteApiKey, preferences.RemoteModel);
+        brain.ScreenImages = preferences.ScreenImages;
+        brain.RefreshModelAvailability();
+        nextWarmup = DateTime.MinValue;
     }
 
     private void ApplyCompanionPowerPolicy()
@@ -501,10 +511,10 @@ public partial class MainWindow
                         companionSettings?.Close();
                         break;
                     case "bubble":
-                        ShowCompanionBubble("主人，小女仆今天也元气满满地来报到啦～");
+                        ShowCompanionBubble("主人，小女僕今天也元氣滿滿地來報到啦～");
                         break;
                     case "bubble-next":
-                        ShowCompanionBubble("主人，下一句已经送到啦，小尾巴也跟着摇起来～");
+                        ShowCompanionBubble("主人，下一句已經送到啦，小尾巴也跟著搖起來～");
                         break;
                     case "battery":
                         CompanionNative.TestPowerOverride = false;
@@ -680,18 +690,18 @@ public partial class MainWindow
             lastExternalForeground = CompanionNative.ResolveSpeechForeground(CompanionNative.GetForegroundWindow(), lastExternalForeground);
             foreach (int index in new[] { 2, 3 }) if (menu.Items.Count > index) menu.Items[index].Enabled = !PuppetActive;
         };
-        menu.Items.Add("显示桌宠", null, (_, _) => Dispatcher.Invoke(RestoreCompanion));
-        menu.Items.Add("设置", null, (_, _) => Dispatcher.Invoke(OpenCompanionSettings));
-        menu.Items.Add("天气", null, async (_, _) => await Dispatcher.InvokeAsync(SpeakCompanionWeather).Task.Unwrap());
-        menu.Items.Add("吐字测试", null, async (_, _) => await Dispatcher.InvokeAsync(SpeakCompanionTest).Task.Unwrap());
-        menu.Items.Add("关闭桌宠", null, (_, _) => Dispatcher.Invoke(() => base.Close()));
+        menu.Items.Add("顯示桌寵", null, (_, _) => Dispatcher.Invoke(RestoreCompanion));
+        menu.Items.Add("設定", null, (_, _) => Dispatcher.Invoke(OpenCompanionSettings));
+        menu.Items.Add("天氣", null, async (_, _) => await Dispatcher.InvokeAsync(SpeakCompanionWeather).Task.Unwrap());
+        menu.Items.Add("吐字測試", null, async (_, _) => await Dispatcher.InvokeAsync(SpeakCompanionTest).Task.Unwrap());
+        menu.Items.Add("關閉桌寵", null, (_, _) => Dispatcher.Invoke(() => base.Close()));
         string[] icons = ["\uE7F4", "\uE713", "\uE706", "\uE8F2", "\uE8BB"];
         for (int index = 0; index < menu.Items.Count; index++) menu.Items[index].Tag = icons[index];
         using var sourceIcon = new System.Drawing.Icon(Path.Combine(AppContext.BaseDirectory, "BigBlueFish.ico"));
         notifyIcon = new CompanionTrayIcon
         {
             Icon = new System.Drawing.Icon(sourceIcon, new System.Drawing.Size(32, 32)),
-            Text = "蓝色大肥鱼",
+            Text = "藍色大肥魚",
             ContextMenuStrip = menu
         };
         notifyIcon.DoubleClick += (_, _) => Dispatcher.Invoke(RestoreCompanion);

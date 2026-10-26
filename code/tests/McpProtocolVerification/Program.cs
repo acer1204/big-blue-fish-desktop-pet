@@ -41,7 +41,7 @@ var interval = settingProperties.GetProperty("AnimationIntervalSeconds");
 Check(interval.GetProperty("type").GetString()=="integer" && interval.GetProperty("minimum").GetInt32()==30 && interval.GetProperty("maximum").GetInt32()==300, "Animation interval schema matches runtime bounds");
 Check(settingProperties.GetProperty("SpeechMinMinutes").GetProperty("enum").EnumerateArray().Select(v=>v.GetInt32()).SequenceEqual(new[]{2,3,5,10,15,20}), "Speech range enum documented");
 foreach (var name in new[]{"Left","Top","LastBrushDate"}) Check(settingProperties.GetProperty(name).GetProperty("type").EnumerateArray().Any(t=>t.GetString()=="null"),"Nullable setting accurately documented: " + name);
-response = await Request(3, "tools/call", new { name = "say", arguments = new { text = "主人好~原文含有英文、换行\n和标点。" } });
+response = await Request(3, "tools/call", new { name = "say", arguments = new { text = "主人好~原文含有英文、換行\n和標點。" } });
 Check(response.GetProperty("result").GetProperty("content")[0].GetProperty("text").GetString()!.Contains("say"), "Tool result structure");
 await Request(4, "resources/subscribe", new { uri = "bigbluefish://interactions" });
 server.Publish("click", new { button = "left", x = 20, y = 30 });

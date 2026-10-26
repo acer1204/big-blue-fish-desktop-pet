@@ -37,16 +37,16 @@ internal static class Program
         Check(Property<double>(prefs,"BubbleScale")==1,"old settings default bubble to 100 percent");
         Invoke(w,"OpenCompanionSettings");Pump(100);
         var settings=(Window)Read(w,"companionSettings");
-        Children<Button>(settings).Single(b=>b.Content?.ToString()=="说话与天气").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-        var slider=Children<Slider>(settings).Single(s=>System.Windows.Automation.AutomationProperties.GetName(s)=="文字气泡大小");
+        Children<Button>(settings).Single(b=>b.Content?.ToString()=="說話與天氣").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+        var slider=Children<Slider>(settings).Single(s=>System.Windows.Automation.AutomationProperties.GetName(s)=="文字氣泡大小");
         Check(slider.IsVisible&&slider.Minimum==.5&&slider.Maximum==2&&slider.TickFrequency==.05,"independent bubble slider visible with range and steps");
         var bubble=(Border)Read(w,"bubble");var text=(TextBlock)Read(w,"bubbleText");
         var sprite=(Image)Read(w,"videoImage");double petWidth=sprite.Width;
         double baseWidth=0,baseHeight=0;
         foreach(var scale in new[]{1.0,.5,2.0,1.35})
         {
-            slider.Value=scale;Invoke(w,"ShowCompanionNotice","主人，鱼鱼陪你呀~",false);Pump(120);
-            var popup=w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="蓝色大肥鱼 · 对话");
+            slider.Value=scale;Invoke(w,"ShowCompanionNotice","主人，魚魚陪你呀~",false);Pump(120);
+            var popup=w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="藍色大肥魚 · 對話");
             if(scale==1){baseWidth=popup.Width;baseHeight=popup.Height;}
             Check(Math.Abs(popup.Width-baseWidth*scale)<1&&Math.Abs(popup.Height-baseHeight*scale)<1,"complete bubble scales proportionally "+scale);
             Check(sprite.Width==petWidth&&Property<double>(prefs,"Scale")==1,"bubble scaling leaves pet unchanged "+scale);
@@ -60,15 +60,15 @@ internal static class Program
         {
             Set(prefs,"Scale",petScale);Invoke(w,"ApplyCompanionScale",false);slider.Value=bubbleScale;
             w.Left=corner.X;w.Top=corner.Y;Invoke(w,"ClampCompanion");
-            Invoke(w,"ShowCompanionNotice","主人，鱼鱼看到你在认真研究新的功能啦，先伸个懒腰再慢慢来好不好呀？小尾巴也跟着主人一起加油哦~",false);Pump(80);
-            var popup=w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="蓝色大肥鱼 · 对话");var area=CompanionEdgeLayout.WorkArea(w);
+            Invoke(w,"ShowCompanionNotice","主人，魚魚看到你在認真研究新的功能啦，先伸個懶腰再慢慢來好不好呀？小尾巴也跟著主人一起加油喔~",false);Pump(80);
+            var popup=w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="藍色大肥魚 · 對話");var area=CompanionEdgeLayout.WorkArea(w);
             Check(popup.IsVisible&&popup.Left>=area.Left-1&&popup.Top>=area.Top-1&&popup.Left+popup.Width<=area.Right+1&&popup.Top+popup.Height<=area.Bottom+1,"scaled bubble stays inside work area");
             Check(Math.Abs(Property<double>(prefs,"BubbleScale")-bubbleScale)<.001,"pet resize preserves bubble setting");
             var bounds=text.TransformToAncestor(popup).TransformBounds(new Rect(0,0,text.ActualWidth,text.ActualHeight));
             Check(bounds.Right<=popup.Width+1&&bounds.Bottom<=popup.Height+1,$"full text fits scaled popup pet={petScale} bubble={bubbleScale} corner={corner} bounds={bounds} popup={popup.Width}x{popup.Height}");
         }
         Children<Button>(bubble).Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
-        Check(!w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="蓝色大肥鱼 · 对话").IsVisible,"scaled close button dismisses bubble");
+        Check(!w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="藍色大肥魚 · 對話").IsVisible,"scaled close button dismisses bubble");
         settings.Close();
         foreach(var sample in new[]{(Value:.1,Expected:.5),(Value:9.0,Expected:2.0)})
         {
@@ -84,12 +84,12 @@ internal static class Program
     static IntPtr Handle(Window window)=>new System.Windows.Interop.WindowInteropHelper(window).Handle;
     static void VerifySettingsFocus(MainWindow w)
     {
-        using var closeFixture=new CloseWindow(new Window { Title="大肥鱼设置前台回归样例",Width=460,Height=220,ShowInTaskbar=true,Content=new TextBlock {Text="普通窗口切换检查",Margin=new Thickness(30)} });
+        using var closeFixture=new CloseWindow(new Window { Title="大肥魚設定前臺迴歸樣例",Width=460,Height=220,ShowInTaskbar=true,Content=new TextBlock {Text="普通視窗切換檢查",Margin=new Thickness(30)} });
         var other=closeFixture.Window;other.Show();other.Activate();Pump(100);
         Console.WriteLine("FOCUS_FIXTURE_READY: click the normal regression window to grant genuine foreground input.");
         Wait(()=>GetForegroundWindow()==Handle(other),60,"ordinary fixture receives genuine foreground input before opening settings");
         var menu=(ContextMenu)Read(w,"companionContextMenu");
-        var item=menu.Items.Cast<MenuItem>().Single(i=>i.Header?.ToString()=="设置");
+        var item=menu.Items.Cast<MenuItem>().Single(i=>i.Header?.ToString()=="設定");
         menu.IsOpen=true;Pump();item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         // Reproduce late menu focus restoration after its click handler returns.
         w.Dispatcher.BeginInvoke(DispatcherPriority.Input,(Action)(()=>other.Activate()));Pump(120);
@@ -110,8 +110,8 @@ internal static class Program
         settings.Close();other.Activate();Pump();
         var petStyle=GetWindowStyle(Handle(w),-20).ToInt64();
         Check(w.Topmost&&!w.ShowActivated&&!w.ShowInTaskbar&&(petStyle&0x08000080)==0x08000080,"pet remains topmost non-activating tool window");
-        Invoke(w,"ShowCompanionNotice","主人，鱼鱼在这里呀~",false);Pump();
-        var bubble=w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="蓝色大肥鱼 · 对话");
+        Invoke(w,"ShowCompanionNotice","主人，魚魚在這裡呀~",false);Pump();
+        var bubble=w.OwnedWindows.Cast<Window>().Single(p=>p.Title=="藍色大肥魚 · 對話");
         Check(bubble.IsVisible&&bubble.Topmost&&!bubble.ShowActivated&&!bubble.ShowInTaskbar,"bubble retains topmost no-activate behavior");
         Check(GetForegroundWindow()==Handle(other),"showing pet bubble does not take foreground from ordinary window");
         Invoke(w,"OpenCompanionSettings");((Window)Read(w,"companionSettings")).Close();other.Activate();Pump();
@@ -127,7 +127,7 @@ internal static class Program
     {
         var menu=(ContextMenu)Read(w,"companionContextMenu");
         var items=menu.Items.Cast<MenuItem>().ToArray();
-        Check(items.Select(i=>i.Header?.ToString()).SequenceEqual(new[]{"设置","天气","吐字测试","隐藏桌宠"}),"pet menu retains its four actions");
+        Check(items.Select(i=>i.Header?.ToString()).SequenceEqual(new[]{"設定","天氣","吐字測試","隱藏桌寵"}),"pet menu retains its four actions");
         menu.IsOpen=true;Pump(120);menu.UpdateLayout();
         var dismissal=Read(w,"companionMenuDismissal");
         Check(Property<bool>(dismissal,"IsListening"),"outside-click observer attaches only while menu is open");
@@ -150,15 +150,15 @@ internal static class Program
         Check(!menu.IsOpen&&Read(w,"companionSettings") is Window {IsVisible:true},"styled settings action opens actual settings and dismisses menu");
         ((Window)Read(w,"companionSettings")).Close();
         menu.IsOpen=true;Pump();items[1].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
-        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("启用本地大模型"),"weather action retains model-off behavior");
+        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("啟用本機大模型"),"weather action retains model-off behavior");
         menu.IsOpen=true;Pump();items[2].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
-        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("当前设置暂停了模型"),"speech test action retains model-off behavior");
+        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("目前設定暫停了模型"),"speech test action retains model-off behavior");
         menu.IsOpen=true;Pump();items[3].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
         Check(!w.IsVisible&&(bool)Read(w,"hiddenByUser"),"styled hide action uses existing hide lifecycle");
         Invoke(w,"RestoreCompanion");Pump();Check(w.IsVisible&&!(bool)Read(w,"hiddenByUser"),"existing restore still works");
         var tray=(System.Windows.Forms.ContextMenuStrip)((CompanionTrayIcon)Read(w,"notifyIcon")).ContextMenuStrip!;
         Check(tray.Renderer.GetType().Name=="CompanionTrayMenuRenderer"&&!tray.ShowImageMargin,"tray uses matching palette without obsolete image gutter");
-        Check(tray.Items.Cast<System.Windows.Forms.ToolStripItem>().Select(i=>i.Text).SequenceEqual(new[]{"显示桌宠","设置","天气","吐字测试","关闭桌宠"}),"tray retains all original actions");
+        Check(tray.Items.Cast<System.Windows.Forms.ToolStripItem>().Select(i=>i.Text).SequenceEqual(new[]{"顯示桌寵","設定","天氣","吐字測試","關閉桌寵"}),"tray retains all original actions");
         tray.Show(new System.Drawing.Point(500,300));System.Windows.Forms.Application.DoEvents();
         Console.WriteLine($"TRAY_METRICS dpi={tray.DeviceDpi} font={tray.Font.Size}/{tray.Font.Unit} size={tray.Size} client={tray.ClientSize} items="+string.Join(";",tray.Items.Cast<System.Windows.Forms.ToolStripItem>().Select(i=>$"{i.Text}:{i.Bounds},font={i.Font.Size}")));
         Check(tray.GetType().Name=="CompanionTrayMenu"&&tray.Region!=null
@@ -187,16 +187,16 @@ internal static class Program
     {
         var area=CompanionEdgeLayout.WorkArea(w);
         int clicks=0;
-        var button=new Button {Content="点这里验证外部点击",Margin=new Thickness(35),FontSize=18};
+        var button=new Button {Content="點這裡驗證外部點選",Margin=new Thickness(35),FontSize=18};
         button.Click+=(_,_)=>clicks++;
-        using var fixture=new CloseWindow(new Window {Title="大肥鱼菜单外部点击验证",Width=420,Height=220,
+        using var fixture=new CloseWindow(new Window {Title="大肥魚選單外部點選驗證",Width=420,Height=220,
             Left=area.Left+40,Top=area.Top+40,Content=button,ShowInTaskbar=true});
         fixture.Window.Show();fixture.Window.Activate();Pump();
         var menu=(ContextMenu)Read(w,"companionContextMenu");
         menu.Placement=System.Windows.Controls.Primitives.PlacementMode.AbsolutePoint;
         menu.HorizontalOffset=area.Left+500;menu.VerticalOffset=area.Top+150;menu.IsOpen=true;Pump(100);
         Check(Property<bool>(Read(w,"companionMenuDismissal"),"IsListening"),"native observer installed for real outside click");
-        Console.WriteLine("OUTSIDE_CLICK_READY: click the button in 大肥鱼菜单外部点击验证.");
+        Console.WriteLine("OUTSIDE_CLICK_READY: click the button in 大肥魚選單外部點選驗證.");
         Wait(()=>clicks>0,60,"outside target receives a real click");Pump(100);
         Check(!menu.IsOpen,"real click outside pet/menu closes context menu");
         Check(!Property<bool>(Read(w,"companionMenuDismissal"),"IsListening"),"native observer removed after outside click");
@@ -250,7 +250,7 @@ internal static class Program
             var welcome=(string)Invoke(w,"WelcomeText",DateTime.Now)!;
             Check(((TextBlock)Read(w,"bubbleText")).Text==welcome,"welcome appears immediately with model disabled");
             foreach(var sample in new[]{(Hour:5,Period:"早上"),(Hour:10,Period:"早上"),(Hour:11,Period:"中午"),(Hour:13,Period:"中午"),(Hour:14,Period:"下午"),(Hour:17,Period:"下午"),(Hour:18,Period:"晚上"),(Hour:0,Period:"晚上")})
-                Check((string)Invoke(w,"WelcomeText",new DateTime(2026,10,14,sample.Hour,0,0))! == $"主人{sample.Period}好，鱼鱼给主人请安啦~","system time greeting boundary "+sample.Hour);
+                Check((string)Invoke(w,"WelcomeText",new DateTime(2026,10,14,sample.Hour,0,0))! == $"主人{sample.Period}好，魚魚給主人請安啦~","system time greeting boundary "+sample.Hour);
             Wait(()=>(string)Read(w,"animationPhase")!="Startup",9,"startup greeting completes at faster speed");
             Check(start.Elapsed.TotalSeconds>=6.4&&start.Elapsed.TotalSeconds<8,"full startup bow lasts about 6.7 seconds");
             Check(((Border)Read(w,"bubble")).Visibility!=Visibility.Visible,"welcome closes with bow, independent of 2 minute bubble setting");
@@ -275,7 +275,7 @@ internal static class Program
             Invoke(w,"OpenCompanionSettings");Pump(150);
             var settings=(Window)Read(w,"companionSettings");
             var buttons=Children<Button>(settings).ToArray();
-            var navigation=buttons.Where(b=>new[]{"陪伴与外观","说话与天气","模型与供电"}.Contains(b.Content?.ToString())).ToArray();
+            var navigation=buttons.Where(b=>new[]{"陪伴與外觀","說話與天氣","模型與供電"}.Contains(b.Content?.ToString())).ToArray();
             Check(navigation.Length==3,"settings navigation");
             for(int i=0;i<3;i++)
             {
@@ -294,8 +294,8 @@ internal static class Program
                 w.Left=-800;w.Top=-800;Invoke(w,"ClampCompanion");Pump();
                 var body=CompanionEdgeLayout.PetBounds(w);var work=CompanionEdgeLayout.WorkArea(w);
                 Check(w.Left+body.Left>=work.Left-1&&w.Top+body.Top>=work.Top-1,"visible body clamps at scale "+scale);
-                Invoke(w,"ShowCompanionBubble","主人，大肥鱼的小尾巴也陪着你认真工作呀～");Pump(100);
-                Check(w.OwnedWindows.Cast<Window>().Any(p=>p.Title=="蓝色大肥鱼 · 对话"&&p.IsVisible),"separate bubble visible "+scale);
+                Invoke(w,"ShowCompanionBubble","主人，大肥魚的小尾巴也陪著你認真工作呀～");Pump(100);
+                Check(w.OwnedWindows.Cast<Window>().Any(p=>p.Title=="藍色大肥魚 · 對話"&&p.IsVisible),"separate bubble visible "+scale);
             }
             settings.Width=680;settings.Height=450;Pump(100);
             Render((Visual)settings.Content,"settings-small.png",(int)settings.ActualWidth,(int)settings.ActualHeight);
@@ -315,16 +315,16 @@ internal static class Program
             Console.WriteLine("Click, drag hold/release and paired movement verified.");
             // Model-free battery notices exercise the preserved production speech-display path.
             Set(prefs,"ModelEnabled",true);((Task)Invoke(w,"SpeakCompanionTest")!).GetAwaiter().GetResult();
-            Pump(2000);var text=(TextBlock)Read(w,"bubbleText");Check(text.Text=="主人，当前设置为笔记本离电暂停模型，可以在设置里调节哦。","speech test battery notice");
+            Pump(2000);var text=(TextBlock)Read(w,"bubbleText");Check(text.Text=="主人，目前設定為筆電拔掉電源時暫停模型，可以在設定裡調整喔。","speech test battery notice");
             Check(Property<int?>(Read(w,"brain"),"RunnerPid")==null,"animation logic did not start model");
             var context=(ContextMenu)Read(w,"companionContextMenu");
-            var hide=context.Items.Cast<MenuItem>().Single(m=>(string)m.Header=="隐藏桌宠");
+            var hide=context.Items.Cast<MenuItem>().Single(m=>(string)m.Header=="隱藏桌寵");
             hide.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
             Check(!w.IsVisible&&(bool)Read(w,"hiddenByUser"),"direct pet context menu hides character");
             Invoke(w,"RestoreCompanion");Pump();Check(w.IsVisible&&!(bool)Read(w,"hiddenByUser"),"tray restore path still shows character");
             start.Restart();w.Close();Check((string)Read(w,"animationPhase")=="Exit"&&w.IsVisible,"closing farewell starts once");
             Check(Property<double>(player,"PlaybackRate")==1.5,"farewell greeting uses 1.5x playback");
-            Check(((TextBlock)Read(w,"bubbleText")).Text=="主人再见~鱼鱼喜欢主人哦","farewell appears immediately with exact single tilde");
+            Check(((TextBlock)Read(w,"bubbleText")).Text=="主人再見~魚魚喜歡主人喔","farewell appears immediately with exact single tilde");
             Wait(()=>!w.IsVisible,9,"farewell completed and window closed");Check(start.Elapsed.TotalSeconds>=6.5&&start.Elapsed.TotalSeconds<8,"farewell full clip finishes at 1.5x: "+start.Elapsed.TotalSeconds);
             Console.WriteLine($"Animation UI: {checks} checks passed, settings snapshots and alpha render saved to {sandbox}.");return 0;
         }

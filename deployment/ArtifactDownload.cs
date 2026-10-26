@@ -15,7 +15,7 @@ internal static class ArtifactDownload
         internal double Percent => Total > 0 ? Math.Clamp(100d * Received / Total, 0, 100) : 0;
         public override string ToString() => Total > 0
             ? $"{Received / 1048576d:0.0} / {Total / 1048576d:0.0} MB · {Percent:0}%"
-            : $"已下载 {Received / 1048576d:0.0} MB";
+            : $"已下載 {Received / 1048576d:0.0} MB";
     }
 
     internal static async Task Download(string url, string destination, string expectedHash,
@@ -37,7 +37,7 @@ internal static class ArtifactDownload
             if (await ModelStore.Hash(partial, token) == expectedHash)
             { File.Move(partial, destination, true); return; }
             File.Delete(partial);
-            throw new IOException("未完成的下载需要重新开始，请重试。");
+            throw new IOException("未完成的下載需要重新開始，請重試。");
         }
         response.EnsureSuccessStatusCode();
         bool append = offset > 0 && response.StatusCode == HttpStatusCode.PartialContent
@@ -55,18 +55,18 @@ internal static class ArtifactDownload
                 int read;
                 try { read = await input.ReadAsync(buffer, idle.Token); }
                 catch (OperationCanceledException) when (!token.IsCancellationRequested)
-                { throw new IOException("下载连接暂时没有响应。"); }
+                { throw new IOException("下載連線暫時沒有響應。"); }
                 if (read == 0) break;
                 await output.WriteAsync(buffer.AsMemory(0, read), token);
                 received += read; progress?.Report(new Progress(received, total));
             }
         }
         if (total > 0 && new FileInfo(partial).Length < total)
-            throw new IOException("下载连接提前结束，已有进度已保留，请重试。");
+            throw new IOException("下載連線提前結束，已有進度已保留，請重試。");
         if (await ModelStore.Hash(partial, token) != expectedHash)
         {
             File.Delete(partial);
-            throw new InvalidDataException("下载文件校验未通过，请重试。");
+            throw new InvalidDataException("下載檔案校驗未通過，請重試。");
         }
         File.Move(partial, destination, true);
     }

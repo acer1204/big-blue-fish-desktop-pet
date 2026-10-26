@@ -40,7 +40,7 @@ internal sealed partial class LinuxPetWindow
     static TextBlock Paragraph(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 12), Foreground = Brushes.SlateGray };
     static Window Dialog(string title, Avalonia.Controls.Control content, double width = 630, double height = 460) => new() {
         Title = title, Width = width, Height = height, MinWidth = 480, MinHeight = 360,
-        FontFamily = new FontFamily("Noto Sans CJK SC"), FontSize = 14,
+        FontFamily = new FontFamily("Noto Sans CJK TC"), FontSize = 14,
         WindowStartupLocation = WindowStartupLocation.CenterScreen, Background = new SolidColorBrush(Color.FromRgb(247, 248, 251)),
         Content = new Border { Padding = new Thickness(28), Child = content } };
     async Task<bool> Confirm(string title, string message, string accept = "确定", CancellationToken token = default, string reject = "取消")

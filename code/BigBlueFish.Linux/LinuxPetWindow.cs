@@ -59,7 +59,7 @@ internal sealed partial class LinuxPetWindow : Window
         PositionChanged += (_, _) => MoveBubble();
         player.PixelsPresented += (pixels, mirror) => CompanionNative.SetInputShape(TryGetPlatformHandle()?.Handle ?? IntPtr.Zero, pixels, Width * DesktopScaling / 640, mirror);
         player.Failed += error => { File.AppendAllText("companion-errors.log", DateTime.Now.ToString("s") + " " + error + "\n"); if (phase == "Exit") CloseImmediately(); };
-        bubbleText.FontFamily = new FontFamily("avares://BigBlueFish.Linux/Assets#LemiXiaoNaiPaoTi");
+        bubbleText.FontFamily = new FontFamily("avares://BigBlueFish.Linux/Assets#jf-openhuninn-2.1");
         bubbleText.Foreground = Hair;
         var close = new Button { Content = "×", Padding = new Thickness(3), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
         close.Click += (_, _) => { typing = false; bubbleWindow!.Hide(); };

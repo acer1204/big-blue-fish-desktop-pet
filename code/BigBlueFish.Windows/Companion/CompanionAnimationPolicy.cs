@@ -43,12 +43,12 @@ internal sealed class CompanionAnimationPolicy
     internal static CompanionAnimationPolicy Load(string directory)
     {
         var rules = JsonSerializer.Deserialize<List<CompanionAnimationRule>>(File.ReadAllText(Path.Combine(directory, "animations.json")))
-            ?? throw new InvalidDataException("动画规则为空");
+            ?? throw new InvalidDataException("動畫規則為空");
         if (rules.Count != 106 || rules.Select(r => r.Id).Distinct().Count() != rules.Count)
-            throw new InvalidDataException("动画规则不完整或有重复");
+            throw new InvalidDataException("動畫規則不完整或有重複");
         foreach (var rule in rules)
             if (Path.GetFileName(rule.File) != rule.File || !File.Exists(Path.Combine(directory, rule.File)))
-                throw new FileNotFoundException("动画素材缺失", rule.File);
+                throw new FileNotFoundException("動畫素材缺失", rule.File);
         return new(rules);
     }
     internal CompanionAnimationRule Find(string id) => Rules.First(r => r.Id == id);
@@ -99,7 +99,7 @@ internal sealed class CompanionAnimationPolicy
     internal CompanionAnimationRule Choose(string pool, CompanionAnimationContext context, Random random)
     {
         var weighted = Rules.Where(r => r.Pool == pool).Select(r => (Rule: r, Weight: Weight(r, context))).Where(r => r.Weight > 0).ToArray();
-        if (weighted.Length == 0) throw new InvalidOperationException("动画池为空：" + pool);
+        if (weighted.Length == 0) throw new InvalidOperationException("動畫池為空：" + pool);
         var point = random.NextDouble() * weighted.Sum(r => r.Weight);
         foreach (var entry in weighted) { point -= entry.Weight; if (point < 0) return entry.Rule; }
         return weighted[^1].Rule;

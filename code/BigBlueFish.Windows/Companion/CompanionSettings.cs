@@ -23,7 +23,7 @@ public partial class MainWindow
         CancelMovement();
         var w = new Window
         {
-            Title = "大肥鱼设置",
+            Title = "大肥魚設定",
             Width = Math.Min(860, SystemParameters.WorkArea.Width - 32),
             Height = Math.Min(690, SystemParameters.WorkArea.Height - 32),
             MinWidth = Math.Min(680, SystemParameters.WorkArea.Width - 32),
@@ -31,7 +31,7 @@ public partial class MainWindow
             ResizeMode = ResizeMode.CanResize,
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
             Background = new SolidColorBrush(Color.FromRgb(246, 248, 252)),
-            FontFamily = new FontFamily("Microsoft YaHei UI"),
+            FontFamily = new FontFamily("Microsoft JhengHei UI"),
             FontSize = 14,
             ShowInTaskbar = true,
             ShowActivated = true,
@@ -61,17 +61,17 @@ public partial class MainWindow
         var sidebar = new StackPanel { Margin = new Thickness(18, 24, 18, 18) };
         var sidebarFrame = new Border { Background = Brushes.White, BorderBrush = new SolidColorBrush(Color.FromRgb(226, 233, 243)), BorderThickness = new Thickness(0, 0, 1, 0), Child = sidebar };
         shell.Children.Add(sidebarFrame);
-        sidebar.Children.Add(new TextBlock { Text = "蓝色大肥鱼", FontSize = 22, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush(Color.FromRgb(53, 76, 129)), Margin = new Thickness(5, 0, 0, 8) });
+        sidebar.Children.Add(new TextBlock { Text = "藍色大肥魚", FontSize = 22, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush(Color.FromRgb(53, 76, 129)), Margin = new Thickness(5, 0, 0, 8) });
         var version = typeof(MainWindow).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
             .Cast<System.Reflection.AssemblyInformationalVersionAttribute>().First().InformationalVersion.Split('+')[0];
 #if COMPANION_SAFE
-        version += " · 无MCP版";
+        version += " · 無MCP版";
 #endif
-        sidebar.Children.Add(new TextBlock { Text = version + " · 陪伴设置", Foreground = Brushes.SlateGray, Margin = new Thickness(5, 0, 0, 28) });
+        sidebar.Children.Add(new TextBlock { Text = version + " · 陪伴設定", Foreground = Brushes.SlateGray, Margin = new Thickness(5, 0, 0, 28) });
 #if COMPANION_SAFE
-        var titles = new[] { "陪伴与外观", "说话与天气", "模型与供电" };
+        var titles = new[] { "陪伴與外觀", "說話與天氣", "模型與供電" };
 #else
-        var titles = new[] { "陪伴与外观", "说话与天气", "模型与供电", "Agent 与 MCP" };
+        var titles = new[] { "陪伴與外觀", "說話與天氣", "模型與供電", "Agent 與 MCP" };
 #endif
         var pages = new StackPanel[titles.Length];
         var views = new ScrollViewer[titles.Length];
@@ -117,7 +117,7 @@ public partial class MainWindow
             p.Children.Add(c);
         }
 
-        Toggle("启用本地大模型", preferences.ModelEnabled, v =>
+        Toggle("啟用本機大模型", preferences.ModelEnabled, v =>
         {
             preferences.ModelEnabled = v;
             if (!v)
@@ -128,12 +128,12 @@ public partial class MainWindow
                 nextSpeech = DateTime.UtcNow.AddSeconds(20);
             }
         });
-        Toggle("拔电时暂停并卸载模型", preferences.StopModelOnBattery, v =>
+        Toggle("拔掉電源時暫停模型並釋放記憶體", preferences.StopModelOnBattery, v =>
         {
             preferences.StopModelOnBattery = v;
             ApplyCompanionPowerPolicy();
         });
-        Toggle("使用显卡加速（关闭则使用 CPU）", preferences.GpuEnabled, v =>
+        Toggle("使用顯示卡加速（關閉則使用 CPU）", preferences.GpuEnabled, v =>
         {
             preferences.GpuEnabled = v;
             brain.Stop();
@@ -141,7 +141,7 @@ public partial class MainWindow
             nextWarmup = DateTime.MinValue;
         });
         p = pages[0];
-        Toggle("全屏时自动隐藏桌宠", preferences.HideOnFullscreen, v =>
+        Toggle("全螢幕時自動隱藏桌寵", preferences.HideOnFullscreen, v =>
         {
             preferences.HideOnFullscreen = v;
             if (!v && fullscreenHidden)
@@ -150,16 +150,16 @@ public partial class MainWindow
                 if (!hiddenByUser) { Show(); ClampCompanion(); }
             }
         });
-        Toggle("开机自动启动", StartupEnabled(), SetCompanionStartup);
-        Toggle("启动时检查更新", preferences.CheckUpdatesOnStartup, v => preferences.CheckUpdatesOnStartup = v);
+        Toggle("開機自動啟動", StartupEnabled(), SetCompanionStartup);
+        Toggle("啟動時檢查更新", preferences.CheckUpdatesOnStartup, v => preferences.CheckUpdatesOnStartup = v);
         p = pages[1];
-        Toggle("自动获取天气和科技新闻", preferences.PublicInfo, v => preferences.PublicInfo = v);
-        Toggle("感知当前应用（仅在本机处理）", preferences.ForegroundEnabled, v => preferences.ForegroundEnabled = v);
+        Toggle("自動取得天氣和科技新聞", preferences.PublicInfo, v => preferences.PublicInfo = v);
+        Toggle("感知目前使用的程式（本機模型只在本機處理）", preferences.ForegroundEnabled, v => preferences.ForegroundEnabled = v);
         AddCompanionRegionSelectors(p);
         p = pages[0];
         var label = new TextBlock
         {
-            Text = $"缩放：{preferences.Scale:P0}",
+            Text = $"縮放：{preferences.Scale:P0}",
             Margin = new Thickness(0, 10, 0, 4)
         };
         p.Children.Add(label);
@@ -174,14 +174,14 @@ public partial class MainWindow
         scale.ValueChanged += (_, _) =>
         {
             preferences.Scale = scale.Value;
-            label.Text = $"缩放：{scale.Value:P0}";
+            label.Text = $"縮放：{scale.Value:P0}";
             ApplyCompanionScale();
         };
         p.Children.Add(scale);
         p = pages[1];
         var bubbleScaleLabel = new TextBlock
         {
-            Text = $"文字气泡大小：{preferences.BubbleScale:P0}",
+            Text = $"文字氣泡大小：{preferences.BubbleScale:P0}",
             Margin = new Thickness(0, 18, 0, 4)
         };
         p.Children.Add(bubbleScaleLabel);
@@ -190,23 +190,23 @@ public partial class MainWindow
             Minimum = .5, Maximum = 2.0, Value = preferences.BubbleScale,
             TickFrequency = .05, IsSnapToTickEnabled = true
         };
-        System.Windows.Automation.AutomationProperties.SetName(bubbleScale, "文字气泡大小");
+        System.Windows.Automation.AutomationProperties.SetName(bubbleScale, "文字氣泡大小");
         bubbleScale.ValueChanged += (_, _) =>
         {
             preferences.BubbleScale = bubbleScale.Value;
-            bubbleScaleLabel.Text = $"文字气泡大小：{bubbleScale.Value:P0}";
+            bubbleScaleLabel.Text = $"文字氣泡大小：{bubbleScale.Value:P0}";
             ApplyCompanionBubbleScale();
         };
         p.Children.Add(bubbleScale);
         p = pages[0];
-        var intervalLabel = new TextBlock { Text = $"动作触发间隔：{preferences.AnimationIntervalSeconds} 秒", Margin = new Thickness(0, 18, 0, 4) };
+        var intervalLabel = new TextBlock { Text = $"動作觸發間隔：{preferences.AnimationIntervalSeconds} 秒", Margin = new Thickness(0, 18, 0, 4) };
         p.Children.Add(intervalLabel);
         var interval = new Slider { Minimum = 30, Maximum = 300, Value = preferences.AnimationIntervalSeconds, TickFrequency = 10, IsSnapToTickEnabled = true };
-        System.Windows.Automation.AutomationProperties.SetName(interval, "动作触发间隔");
+        System.Windows.Automation.AutomationProperties.SetName(interval, "動作觸發間隔");
         interval.ValueChanged += (_, _) =>
         {
             preferences.AnimationIntervalSeconds = (int)Math.Round(interval.Value);
-            intervalLabel.Text = $"动作触发间隔：{preferences.AnimationIntervalSeconds} 秒";
+            intervalLabel.Text = $"動作觸發間隔：{preferences.AnimationIntervalSeconds} 秒";
             nextAction = DateTime.UtcNow.AddSeconds(preferences.AnimationIntervalSeconds);
             SaveCompanion();
         };
@@ -222,9 +222,9 @@ public partial class MainWindow
             selector.SelectionChanged += (_, _) => { if (selector.SelectedIndex >= 0) { change(selector.SelectedIndex); SaveCompanion(); } };
             column.Children.Add(selector); meals.Children.Add(column);
         }
-        MealTime("早餐时间", preferences.BreakfastHour, h => preferences.BreakfastHour = h);
-        MealTime("午餐时间", preferences.LunchHour, h => preferences.LunchHour = h);
-        MealTime("晚餐时间", preferences.DinnerHour, h => preferences.DinnerHour = h);
+        MealTime("早餐時間", preferences.BreakfastHour, h => preferences.BreakfastHour = h);
+        MealTime("午餐時間", preferences.LunchHour, h => preferences.LunchHour = h);
+        MealTime("晚餐時間", preferences.DinnerHour, h => preferences.DinnerHour = h);
         p.Children.Add(meals);
         p = pages[1];
         var freq = new ComboBox
@@ -232,7 +232,7 @@ public partial class MainWindow
             Margin = new Thickness(0, 8, 0, 8)
         };
         foreach (var range in CompanionPreferences.SpeechRanges)
-            freq.Items.Add($"说话间隔：{range.Min}–{range.Max} 分钟");
+            freq.Items.Add($"說話間隔：{range.Min}–{range.Max} 分鐘");
         freq.SelectedIndex = preferences.SpeechRangeIndex;
         freq.SelectionChanged += (_, _) =>
         {
@@ -244,7 +244,7 @@ public partial class MainWindow
         p.Children.Add(freq);
         var dwellLabel = new TextBlock
         {
-            Text = "气泡驻留时间：" + CompanionPreferences.BubbleDurationLabels[preferences.BubbleDurationIndex],
+            Text = "氣泡駐留時間：" + CompanionPreferences.BubbleDurationLabels[preferences.BubbleDurationIndex],
             Margin = new Thickness(0, 8, 0, 4)
         };
         p.Children.Add(dwellLabel);
@@ -260,11 +260,11 @@ public partial class MainWindow
             TickPlacement = System.Windows.Controls.Primitives.TickPlacement.BottomRight,
             ToolTip = dwellLabel.Text
         };
-        System.Windows.Automation.AutomationProperties.SetName(dwell, "气泡驻留时间");
+        System.Windows.Automation.AutomationProperties.SetName(dwell, "氣泡駐留時間");
         dwell.ValueChanged += (_, _) =>
         {
             preferences.BubbleDurationIndex = (int)Math.Round(dwell.Value);
-            dwellLabel.Text = "气泡驻留时间：" + CompanionPreferences.BubbleDurationLabels[preferences.BubbleDurationIndex];
+            dwellLabel.Text = "氣泡駐留時間：" + CompanionPreferences.BubbleDurationLabels[preferences.BubbleDurationIndex];
             dwell.ToolTip = dwellLabel.Text;
             if (bubble.Visibility == Visibility.Visible)
                 ResetBubbleDeadline();
@@ -272,7 +272,7 @@ public partial class MainWindow
         };
         p.Children.Add(dwell);
         p = pages[2];
-        var installModel = new Button { Content = "安装模型", Margin = new Thickness(0, 8, 0, 8) };
+        var installModel = new Button { Content = "安裝模型", Margin = new Thickness(0, 8, 0, 8) };
         installModel.Click += (_, _) => OpenModelInstaller();
         p.Children.Add(installModel);
         var status = new TextBlock
@@ -290,13 +290,69 @@ public partial class MainWindow
         {
             bool available = brain.ModelAvailable;
             installModel.Visibility = available ? Visibility.Collapsed : Visibility.Visible;
-            status.Text = (CompanionNative.OnAC ? "已插电" :
-                preferences.StopModelOnBattery ? "电池供电 · 已按设置暂停模型" : "电池供电 · 允许模型运行")
-                + "\n" + (available ? brain.Status : "尚未安装模型");
+            status.Text = (CompanionNative.OnAC ? "已插電" :
+                preferences.StopModelOnBattery ? "使用電池 · 已按設定暫停模型" : "使用電池 · 允許模型執行")
+                + "\n" + (available ? brain.Status : "尚未安裝模型");
         }
         timer.Tick += (_, _) => UpdateStatus();
         UpdateStatus();
         timer.Start();
+        p.Children.Add(new TextBlock { Text = "模型來源", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 18, 0, 6) });
+        var source = new ComboBox { Margin = new Thickness(0, 0, 0, 8) };
+        source.Items.Add("本機內建模型");
+        source.Items.Add("遠端 llama.cpp 伺服器（OpenAI 相容介面）");
+        source.SelectedIndex = preferences.ModelSource == "Remote" ? 1 : 0;
+        System.Windows.Automation.AutomationProperties.SetName(source, "模型來源");
+        p.Children.Add(source);
+        var remotePanel = new StackPanel { Visibility = source.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed };
+        TextBox RemoteField(string labelText, string value)
+        {
+            remotePanel.Children.Add(new TextBlock { Text = labelText, Margin = new Thickness(0, 8, 0, 4) });
+            var box = new TextBox { Text = value, Padding = new Thickness(6, 4, 6, 4) };
+            System.Windows.Automation.AutomationProperties.SetName(box, labelText);
+            remotePanel.Children.Add(box);
+            return box;
+        }
+        var remoteUrl = RemoteField("伺服器網址（例如 https://example.com）", preferences.RemoteUrl);
+        remotePanel.Children.Add(new TextBlock { Text = "API Key（以目前 Windows 帳戶加密儲存，不提供給 MCP）", Margin = new Thickness(0, 8, 0, 4) });
+        var remoteKey = new PasswordBox { Password = preferences.RemoteApiKey, Padding = new Thickness(6, 4, 6, 4) };
+        System.Windows.Automation.AutomationProperties.SetName(remoteKey, "遠端 API Key");
+        remotePanel.Children.Add(remoteKey);
+        var remoteModel = RemoteField("模型名稱（留空則使用伺服器提供的第一個模型）", preferences.RemoteModel);
+        var screenImages = new CheckBox { Content = "模型支援圖片時，直接傳送視窗截圖（取代 OCR 文字）", IsChecked = preferences.ScreenImages, Margin = new Thickness(0, 12, 0, 4) };
+        remotePanel.Children.Add(screenImages);
+        remotePanel.Children.Add(new TextBlock { Text = "使用遠端模型時，讀屏文字或截圖會發送到上面的伺服器。", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray, Margin = new Thickness(0, 4, 0, 4) });
+        var testRemote = new Button { Content = "儲存並測試連線", Padding = new Thickness(8), Margin = new Thickness(0, 8, 0, 4) };
+        remotePanel.Children.Add(testRemote);
+        p.Children.Add(remotePanel);
+        void SaveModelSource()
+        {
+            preferences.ModelSource = source.SelectedIndex == 1 ? "Remote" : "Local";
+            preferences.RemoteUrl = remoteUrl.Text.Trim();
+            preferences.RemoteModel = remoteModel.Text.Trim();
+            preferences.RemoteApiKey = remoteKey.Password;
+            preferences.ScreenImages = screenImages.IsChecked == true;
+            speechRequestVersion++;
+            ClearCompanionModelReply();
+            ApplyCompanionModelSource();
+            SaveCompanion();
+            UpdateStatus();
+        }
+        source.SelectionChanged += (_, _) =>
+        {
+            remotePanel.Visibility = source.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+            SaveModelSource();
+        };
+        screenImages.Click += (_, _) => SaveModelSource();
+        testRemote.Click += async (_, _) =>
+        {
+            SaveModelSource();
+            testRemote.IsEnabled = false;
+            status.Text = "正在測試遠端模型……";
+            await brain.TestRemote();
+            testRemote.IsEnabled = true;
+            UpdateStatus();
+        };
         void Button(string text, Action action)
         {
             var b = new Button
@@ -310,11 +366,11 @@ public partial class MainWindow
         }
 
         p = pages[0];
-        Button("检查更新", async () => await CheckForUpdates(true));
+        Button("檢查更新", async () => await CheckForUpdates(true));
         var updates = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray };
         p.Children.Add(updates);
         timer.Tick += (_, _) => updates.Text = updateStatus;
-        Button("隐藏到任务栏通知区", HideCompanion);
+        Button("隱藏到系統匣", HideCompanion);
         Button("回到右下角", () =>
         {
             var a = SystemParameters.WorkArea;
@@ -324,7 +380,7 @@ public partial class MainWindow
             anchor = new Point(Left, Top);
             SaveCompanion();
         });
-        Button("关闭桌宠", () =>
+        Button("關閉桌寵", () =>
         {
             w.Close();
             base.Close();

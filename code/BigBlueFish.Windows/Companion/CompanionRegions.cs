@@ -10,16 +10,21 @@ internal sealed record CompanionRegion(string Code, string ParentCode, int Level
 internal static class CompanionRegions
 {
     internal const string DefaultCode = "340104";
-    internal static readonly IReadOnlyList<CompanionRegion> All = Load();
+    // Taiwan townships use CWA township forecasts; codes are TW-<F-D0047 dataset>-<index>.
+    internal const string TaiwanRoot = "TW", TaiwanDefaultCode = "TW-061-01";
+    internal static readonly IReadOnlyList<CompanionRegion> All = [.. Load("china-regions.json"), .. Load("taiwan-regions.json")];
     private static readonly Dictionary<string, CompanionRegion> ByCode = All.ToDictionary(x => x.Code);
 
-    private static CompanionRegion[] Load()
+    private static CompanionRegion[] Load(string file)
     {
         using var stream = typeof(CompanionRegions).Assembly.GetManifestResourceStream(
-            "BigBlueFish.Windows.assets.regions.china-regions.json")
-            ?? throw new InvalidOperationException("缺少省市区数据");
-        return JsonSerializer.Deserialize<CompanionRegion[]>(stream) ?? throw new InvalidOperationException("省市区数据为空");
+            "BigBlueFish.Windows.assets.regions." + file)
+            ?? throw new InvalidOperationException("缺少省市區資料");
+        return JsonSerializer.Deserialize<CompanionRegion[]>(stream) ?? throw new InvalidOperationException("省市區資料為空");
     }
+
+    internal static bool IsTaiwan(CompanionRegion region) => region.Code.StartsWith(TaiwanRoot + "-", StringComparison.Ordinal);
+    internal static string CwaDataset(CompanionRegion district) => "F-D0047-" + district.ParentCode[3..];
 
     internal static CompanionRegion District(string? code) =>
         code != null && ByCode.TryGetValue(code, out var region) && region.Level == 2 ? region : ByCode[DefaultCode];

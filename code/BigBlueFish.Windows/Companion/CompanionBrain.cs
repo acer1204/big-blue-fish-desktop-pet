@@ -24,6 +24,14 @@ internal sealed class CompanionBrain : IDisposable
     {
         Timeout = TimeSpan.FromSeconds(12)
     };
+    private readonly HttpClient remote = new()
+    {
+        Timeout = TimeSpan.FromSeconds(100)
+    };
+    private string? remoteUrl, remoteModelId;
+    private string remoteApiKey = "", remoteModel = "";
+    private bool remoteVision;
+    private DateTime remoteCheckedUntil;
     private Process? runner;
     private bool runnerReady;
     private readonly Func<ProcessStartInfo, Process?> startRunner;
@@ -38,18 +46,75 @@ internal sealed class CompanionBrain : IDisposable
     private DateTime newsExpires = DateTime.MinValue;
     private readonly Func<double> newsRoll;
     private string lastNewsTitle = "";
-    internal string Status { get; private set; } = "等待说话时启动";
+    internal string Status { get; private set; } = "等待說話時啟動";
     internal bool Busy { get; private set; }
     internal bool UseGpu { get; set; } = true;
     internal bool StopOnBattery { get; set; } = true;
     internal string WeatherRegionCode { get; set; } = CompanionRegions.DefaultCode;
-    internal bool CanRunOnCurrentPower => !StopOnBattery || CompanionNative.OnAC;
+    internal string CwaApiKey { get => weather.CwaApiKey; set => weather.CwaApiKey = value.Trim(); }
+    // Screenshots replace OCR text when the remote model reports image input.
+    internal bool ScreenImages { get; set; }
+    internal bool UseRemote => remoteUrl != null;
+    // Remote inference does not drain the battery, so the unplugged pause covers the local runner only.
+    internal bool CanRunOnCurrentPower => UseRemote || !StopOnBattery || CompanionNative.OnAC;
     private DateTime nextModelCheck;
     private bool modelAvailable;
+
+    // An OpenAI-compatible llama.cpp server replaces the local runner; null returns to the local model.
+    internal void UseRemoteModel(string? url, string apiKey, string model)
+    {
+        url = url?.Trim().TrimEnd('/');
+        if (url != null && url.EndsWith("/v1", StringComparison.OrdinalIgnoreCase)) url = url[..^3];
+        remoteUrl = string.IsNullOrEmpty(url) ? null : url;
+        remoteApiKey = apiKey.Trim();
+        remoteModel = model.Trim();
+        active?.Cancel();
+        StopRunner();
+        Status = UseRemote ? "等待說話時連線遠端模型" : "等待說話時啟動";
+    }
+
+    // A one-token completion proves the URL, API key and model name together.
+    internal async Task<string> TestRemote()
+    {
+        if (!UseRemote) return Status = "請填寫有效的 http 或 https 網址";
+        if (Busy) return "模型正在生成，請稍後再試";
+        Busy = true;
+        active = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        try
+        {
+            remoteCheckedUntil = DateTime.MinValue;
+            await EnsureRemote(active.Token);
+            using var request = RemoteRequest(HttpMethod.Post, "/v1/chat/completions");
+            request.Content = JsonContent.Create(new
+            {
+                model = string.IsNullOrEmpty(remoteModelId) ? "local" : remoteModelId,
+                messages = new[] { new ChatMessage("user", "你好") },
+                max_tokens = 1,
+                chat_template_kwargs = new { enable_thinking = false }
+            });
+            using var response = await remote.SendAsync(request, active.Token);
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) return Status = "遠端模型拒絕存取，請檢查 API Key";
+            if (!response.IsSuccessStatusCode) return Status = $"遠端模型回傳 HTTP {(int)response.StatusCode}";
+            return Status = ReadyStatus("") + (remoteVision ? "（支援圖片）" : "（僅文字）");
+        }
+        catch (Exception error)
+        {
+            StopRunner();
+            return Status = error is IOException ? error.Message : error is OperationCanceledException ? "連線遠端模型逾時" : "無法連線遠端模型";
+        }
+        finally
+        {
+            Busy = false;
+            active?.Dispose();
+            active = null;
+        }
+    }
+
     internal bool ModelAvailable
     {
         get
         {
+            if (UseRemote) return true;
             if (DateTime.UtcNow >= nextModelCheck)
             {
                 modelAvailable = BigBlueFish.Deployment.ModelStore.Resolve(Environment.CurrentDirectory) != null;
@@ -60,10 +125,10 @@ internal sealed class CompanionBrain : IDisposable
     }
     internal void RefreshModelAvailability() => nextModelCheck = DateTime.MinValue;
 #if COMPANION_OCR
-    internal bool VisionAvailable => false;
+    internal bool VisionAvailable => UseRemote && remoteVision;
     internal const string InputMode = "OCR";
 #else
-    internal bool VisionAvailable => File.Exists(Path.GetFullPath("models/Qwen3.5-4B-heretic.mmproj-f16.gguf"));
+    internal bool VisionAvailable => UseRemote ? remoteVision : File.Exists(Path.GetFullPath("models/Qwen3.5-4B-heretic.mmproj-f16.gguf"));
     internal const string InputMode = "Vision";
 #endif
     internal int? RunnerPid => runner is { HasExited: false } ? runner.Id : null;
@@ -96,7 +161,7 @@ internal sealed class CompanionBrain : IDisposable
         return available >= 8192 ? 2048 : available >= 4096 ? 512 : 128;
     }
     internal JsonElement? LastTimings { get; private set; }
-    private string ReadyStatus(string text) => usingCpuFallback ? text + "（CPU兼容模式）" : text;
+    private string ReadyStatus(string text) => UseRemote ? "遠端模型就緒：" + remoteModelId : usingCpuFallback ? text + "（CPU相容模式）" : text;
 
     private async Task<string> ReadGpuDevices(CancellationToken token)
     {
@@ -131,21 +196,21 @@ internal sealed class CompanionBrain : IDisposable
     private sealed class GpuStartupException(string message) : IOException(message);
 
     internal const string WeatherPersona = CompanionDialogue.WeatherPersona;
-    internal static string WeatherRequest(string context) => "本轮天气资料：\n" + context;
+    internal static string WeatherRequest(string context) => "本輪天氣資料：\n" + context;
     internal const string BasePersona = CompanionDialogue.Voice;
     internal const string SceneGuidance = CompanionDialogue.SceneGuidance;
     internal const string Persona = BasePersona + SceneGuidance + CompanionDialogue.ScreenReadingGuidance;
-    private static string ScreenRequest(string context) => "【本轮屏幕资料】\n" + context + "\n【屏幕资料结束】";
+    private static string ScreenRequest(string context) => "【本輪螢幕資料】\n" + context + "\n【螢幕資料結束】";
     internal static string SpeechRequest(string context) => ScreenRequest(context);
     internal static string OcrSpeechRequest(string context) => ScreenRequest(context);
     internal static string OcrPersona => Persona + CompanionDialogue.OcrObserverGuidance;
     internal const string NewsPersona = CompanionDialogue.NewsPersona;
-    internal static string NewsRequest(string context) => $"当前时间：{DateTime.Now:yyyy-MM-dd HH:mm}\n【本轮单条科技新闻资料】\n" + context
-        + "\n【新闻资料结束】\n请直接对主人说两小句：先说这条新闻最重要的事，再说一点自己的感受或对主人的关切。合起来约30–60字。";
+    internal static string NewsRequest(string context) => $"目前時間：{DateTime.Now:yyyy-MM-dd HH:mm}\n【本輪單條科技新聞資料】\n" + context
+        + "\n【新聞資料結束】\n請直接對主人說兩小句：先說這條新聞最重要的事，再說一點自己的感受或對主人的關切。合起來約30–60字。";
 
     internal sealed record ChatMessage(string role, object content);
     internal static string FixedSpeechInstructions(string persona) => persona
-        + "\n本次只说鱼鱼最想说的那一小句，一个自然可爱的小反应就好。\n";
+        + "\n本次只說魚魚最想說的那一小句，一個自然可愛的小反應就好。\n";
     internal static ChatMessage[] BuildMessages(string persona, string request, CompanionWindowImage? image = null)
     {
         if (persona == Persona || persona == OcrPersona)
@@ -173,9 +238,51 @@ internal sealed class CompanionBrain : IDisposable
         return end >= 15 ? shortText[..(end + 1)] : shortText + "…";
     }
 
+    private HttpRequestMessage RemoteRequest(HttpMethod method, string path)
+    {
+        var request = new HttpRequestMessage(method, remoteUrl + path);
+        if (remoteApiKey.Length > 0) request.Headers.Authorization = new("Bearer", remoteApiKey);
+        return request;
+    }
+
+    // Reads the served model and whether it accepts images; no local process is started.
+    private async Task EnsureRemote(CancellationToken token)
+    {
+        if (remoteModelId != null && DateTime.UtcNow < remoteCheckedUntil) return;
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+        limit.CancelAfter(TimeSpan.FromSeconds(10));
+        Status = "正在連線遠端模型";
+        HttpResponseMessage response;
+        try
+        {
+            using var request = RemoteRequest(HttpMethod.Get, "/v1/models");
+            response = await remote.SendAsync(request, limit.Token);
+        }
+        catch (HttpRequestException error) { throw new IOException("無法連線遠端模型：" + error.Message); }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new IOException("連線遠端模型逾時"); }
+        using (response)
+        {
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new IOException("遠端模型拒絕存取，請檢查 API Key");
+            if (!response.IsSuccessStatusCode) throw new IOException($"遠端模型回傳 HTTP {(int)response.StatusCode}");
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
+            var models = document.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array
+                ? data.EnumerateArray().Where(m => m.TryGetProperty("id", out _)).ToArray() : [];
+            var chosen = models.FirstOrDefault(m => m.GetProperty("id").GetString() == remoteModel);
+            if (chosen.ValueKind == JsonValueKind.Undefined && remoteModel.Length == 0 && models.Length > 0) chosen = models[0];
+            remoteModelId = remoteModel.Length > 0 ? remoteModel : chosen.ValueKind == JsonValueKind.Object ? chosen.GetProperty("id").GetString() ?? "" : "";
+            remoteVision = chosen.ValueKind == JsonValueKind.Object && chosen.TryGetProperty("architecture", out var architecture)
+                && architecture.TryGetProperty("input_modalities", out var modalities) && modalities.ValueKind == JsonValueKind.Array
+                && modalities.EnumerateArray().Any(m => m.GetString() == "image");
+        }
+        remoteCheckedUntil = DateTime.UtcNow.AddMinutes(5);
+        Status = ReadyStatus("");
+    }
+
     private async Task EnsureRunner(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        if (UseRemote) { await EnsureRemote(token); return; }
         if (runnerReady && runner is { HasExited: false })
         {
             try
@@ -220,8 +327,8 @@ internal sealed class CompanionBrain : IDisposable
         var path = OperatingSystem.IsWindows() ? Path.GetFullPath("runtime/llama-server.exe")
             : Path.Combine(AppContext.BaseDirectory, "runtime", "llama-server");
         var model = BigBlueFish.Deployment.ModelStore.Resolve(Environment.CurrentDirectory);
-        if (!File.Exists(path)) throw new IOException("未找到本地推理程序：" + path);
-        if (model == null) throw new IOException("尚未安装可用模型，可以在设置中安装模型。");
+        if (!File.Exists(path)) throw new IOException("未找到本機推理程式：" + path);
+        if (model == null) throw new IOException("尚未安裝可用模型，可以在設定中安裝模型。");
         var probe = new TcpListener(IPAddress.Loopback, 0);
         probe.Start();
         port = ((IPEndPoint)probe.LocalEndpoint).Port;
@@ -284,10 +391,10 @@ internal sealed class CompanionBrain : IDisposable
         }
         foreach (var arg in arguments)
             psi.ArgumentList.Add(arg);
-        runner = startRunner(psi) ?? throw new IOException("无法启动本地模型");
+        runner = startRunner(psi) ?? throw new IOException("無法啟動本機模型");
         if (!job.Attach(runner))
         {
-            throw new IOException("无法建立模型退出保障");
+            throw new IOException("無法建立模型退出保障");
         }
 
         // Keep only a bounded startup error tail in memory; no prompt or screen content is logged.
@@ -305,7 +412,7 @@ internal sealed class CompanionBrain : IDisposable
         };
         runner.BeginOutputReadLine();
         runner.BeginErrorReadLine();
-        Status = ReadyStatus("正在加载本地模型");
+        Status = ReadyStatus("正在載入本機模型");
         using var loading = CancellationTokenSource.CreateLinkedTokenSource(token);
         loading.CancelAfter(runnerLoadTimeout);
         var loadingToken = loading.Token;
@@ -323,10 +430,10 @@ internal sealed class CompanionBrain : IDisposable
                     lock (startupErrors) details = string.Join(" ", startupErrors);
                     if (details.Contains("OutOfDeviceMemory", StringComparison.OrdinalIgnoreCase)
                         || details.Contains("failed to allocate", StringComparison.OrdinalIgnoreCase))
-                        throw gpu ? new GpuStartupException("本地模型加载失败：可用内存或显存不足")
-                            : new IOException("本地模型加载失败：可用内存或显存不足");
+                        throw gpu ? new GpuStartupException("本機模型載入失敗：可用記憶體或顯示記憶體不足")
+                            : new IOException("本機模型載入失敗：可用記憶體或顯示記憶體不足");
                     string suffix = details.Length == 0 ? "" : "：" + details[^Math.Min(details.Length, 280)..];
-                    string message = $"本地模型启动失败（退出码 0x{unchecked((uint)runner.ExitCode):X8}）" + suffix;
+                    string message = $"本機模型啟動失敗（結束代碼 0x{unchecked((uint)runner.ExitCode):X8}）" + suffix;
                     if (gpu && Regex.IsMatch(details, "Vulkan|ggml_cuda|CUDA error|ErrorDeviceLost|VK_ERROR", RegexOptions.IgnoreCase))
                         throw new GpuStartupException(message);
                     throw new IOException(message);
@@ -348,7 +455,7 @@ internal sealed class CompanionBrain : IDisposable
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested && CanRunOnCurrentPower)
         {
-            throw new TimeoutException("模型加载超时");
+            throw new TimeoutException("模型載入逾時");
         }
     }
 
@@ -398,18 +505,18 @@ internal sealed class CompanionBrain : IDisposable
         var token = active.Token;
         try
         {
-            Status = "正在获取所选地区天气";
+            Status = "正在取得所選地區天氣";
             var context = await weather.Context(WeatherRegionCode, token);
             await EnsureRunner(token);
-            Status = "正在生成天气播报";
+            Status = "正在生成天氣播報";
             var text = await Complete(WeatherPersona, WeatherRequest(context), CompanionDialogue.Temperature, token, onPartial: onPartial);
-            Status = ReadyStatus("本地模型就绪");
+            Status = ReadyStatus("本機模型就緒");
             return CanRunOnCurrentPower ? text : "";
         }
-        catch (OperationCanceledException) { Status = "天气播报已取消"; return ""; }
+        catch (OperationCanceledException) { Status = "天氣播報已取消"; return ""; }
         catch (Exception e)
         {
-            Status = e is IOException ? e.Message : "暂时无法获取或播报天气，请稍后重试";
+            Status = e is IOException ? e.Message : "暫時無法取得或播報天氣，請稍後重試";
             return "";
         }
         finally
@@ -440,7 +547,7 @@ internal sealed class CompanionBrain : IDisposable
         LastTimings = null;
         var payload = new
         {
-            model = "local",
+            model = UseRemote && !string.IsNullOrEmpty(remoteModelId) ? remoteModelId : "local",
             messages,
             temperature,
             top_p = .9,
@@ -455,11 +562,12 @@ internal sealed class CompanionBrain : IDisposable
             try { File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "model-request.json"), JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true })); }
             catch { }
         }
-        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{port}/v1/chat/completions")
-        {
-            Content = JsonContent.Create(payload)
-        };
-        using var response = await local.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, token);
+        using var requestMessage = UseRemote ? RemoteRequest(HttpMethod.Post, "/v1/chat/completions")
+            : new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{port}/v1/chat/completions");
+        requestMessage.Content = JsonContent.Create(payload);
+        using var response = await (UseRemote ? remote : local).SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, token);
+        if (UseRemote && response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new IOException("遠端模型拒絕存取，請檢查 API Key");
         response.EnsureSuccessStatusCode();
         if (!StreamingResponses)
         {
@@ -566,18 +674,31 @@ internal sealed class CompanionBrain : IDisposable
             else
             {
 #if COMPANION_OCR
-                string context = $"现在是{DateTime.Now:yyyy年M月d日 HH:mm}。\n";
+                string context = $"現在是{DateTime.Now:yyyy年M月d日 HH:mm}。\n";
                 if (useForeground)
                 {
                     // Pin exactly one HWND for both the capture and the supplemental identity.
                     var handle = foregroundHandle == IntPtr.Zero ? CompanionNative.GetForegroundWindow() : foregroundHandle;
-                    Status = "正在识别当前窗口文字";
-                    ocr = await CompanionOcr.ReadAsync(handle, token);
-                    context += ocr.Context;
+#if !COMPANION_LINUX
+                    if (ScreenImages && UseRemote) await EnsureRunner(token);
+                    if (ScreenImages && VisionAvailable)
+                    {
+                        // A large remote model reads the whole window better than OCR fragments.
+                        Status = "正在擷取目前視窗";
+                        image = CompanionNative.ForegroundWindowImage(handle, 1568);
+                        if (image != null) context += CompanionNative.ForegroundContext(handle);
+                    }
+#endif
+                    if (image == null)
+                    {
+                        Status = "正在辨識目前視窗文字";
+                        ocr = await CompanionOcr.ReadAsync(handle, token);
+                        context += ocr.Context;
+                    }
                 }
-                else context += "用户正在使用电脑。";
+                else context += "使用者正在使用電腦。";
 #else
-                var context = $"现在是{DateTime.Now:yyyy年M月d日 HH:mm}。" + (useForeground ? CompanionNative.ForegroundContext(foregroundHandle) : "用户正在使用电脑。");
+                var context = $"現在是{DateTime.Now:yyyy年M月d日 HH:mm}。" + (useForeground ? CompanionNative.ForegroundContext(foregroundHandle) : "使用者正在使用電腦。");
                 if (useForeground && VisionAvailable)
                     image = CompanionNative.ForegroundWindowImage(foregroundHandle);
 #endif
@@ -595,6 +716,7 @@ internal sealed class CompanionBrain : IDisposable
                 request = ocr == null ? SpeechRequest(context) : OcrSpeechRequest(context);
                 inputReadyMs = generationWatch.Elapsed.TotalMilliseconds;
                 WriteOcrDiagnostic(ocr, request, null, false, inputReadyMs, null, publicInfoMs, inputReadyMs, null);
+                WriteVisionDiagnostic(image, context, null, false);
 #else
                 request = SpeechRequest(context);
                 WriteVisionDiagnostic(image, context, null, false);
@@ -603,7 +725,7 @@ internal sealed class CompanionBrain : IDisposable
 
             await EnsureRunner(token);
             runnerReadyMs = generationWatch.Elapsed.TotalMilliseconds;
-            Status = image == null ? "本地生成短句" : "正在理解当前窗口";
+            Status = image != null ? "正在理解目前視窗" : UseRemote ? "遠端生成短句" : "本機生成短句";
 #if COMPANION_OCR
             var selectedPersona = news == null ? (ocr == null ? Persona : OcrPersona) : NewsPersona;
 #else
@@ -617,23 +739,24 @@ internal sealed class CompanionBrain : IDisposable
 #if COMPANION_OCR
             WriteOcrDiagnostic(ocr, request, text, true, generationWatch.Elapsed.TotalMilliseconds, firstContentMs,
                 publicInfoMs, inputReadyMs, runnerReadyMs);
+            WriteVisionDiagnostic(image, request, text, true, generationWatch.Elapsed.TotalMilliseconds, firstContentMs, runnerReadyMs);
 #else
             WriteVisionDiagnostic(image, request, text, true, generationWatch.Elapsed.TotalMilliseconds,
                 firstContentMs, runnerReadyMs);
 #endif
             if (news != null && text.Length > 0)
                 lastNewsTitle = news.Title;
-            Status = ReadyStatus("本地模型就绪");
+            Status = ReadyStatus("本機模型就緒");
             return CanRunOnCurrentPower ? text : "";
         }
         catch (OperationCanceledException)
         {
-            Status = "模型已暂停";
+            Status = "模型已暫停";
             return "";
         }
         catch (Exception e)
         {
-            Status = e is IOException ? e.Message : "暂时无法生成，稍后重试";
+            Status = e is IOException ? e.Message : "暫時無法生成，稍後重試";
             return "";
         }
         finally
@@ -706,6 +829,7 @@ internal sealed class CompanionBrain : IDisposable
     {
         runnerReady = false;
         usingCpuFallback = false;
+        remoteModelId = null;
         try
         {
             if (runner is { HasExited: false })
@@ -738,13 +862,13 @@ internal sealed class CompanionBrain : IDisposable
         try
         {
             await EnsureRunner(active.Token);
-            Status = ReadyStatus("本地模型已驻留");
+            Status = ReadyStatus("本機模型已駐留");
         }
         catch (Exception error)
         {
             StopRunner();
             Status = error is IOException ? error.Message
-                : error is TimeoutException ? "模型加载超时，稍后重试" : "模型未就绪，稍后重试";
+                : error is TimeoutException ? "模型載入逾時，稍後重試" : "模型未就緒，稍後重試";
         }
         finally
         {
@@ -764,6 +888,7 @@ internal sealed class CompanionBrain : IDisposable
         Stop();
         job.Dispose();
         local.Dispose();
+        remote.Dispose();
         weather.Dispose();
         publicWeb.Dispose();
     }

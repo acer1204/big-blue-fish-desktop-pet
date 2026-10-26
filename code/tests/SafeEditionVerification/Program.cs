@@ -32,7 +32,7 @@ static class Program
             Check(!(bool)prefs.GetType().GetProperty("McpEnabled")!.GetValue(prefs)! && !(bool)prefs.GetType().GetProperty("PuppetMode")!.GetValue(prefs)!,"old enabled flags cannot start MCP or puppet in Safe");
             Check((string)Read("animationPhase")=="Startup","safe keeps ordinary welcome animation");
             Invoke("OpenCompanionSettings");Pump(150);var settings=(Window)Read("companionSettings");
-            Check(!Descendants<Button>(settings).Any(b=>b.Content?.ToString()=="Agent 与 MCP"),"safe settings have no MCP page");
+            Check(!Descendants<Button>(settings).Any(b=>b.Content?.ToString()=="Agent 與 MCP"),"safe settings have no MCP page");
             settings.Close();Invoke("AnimationBoundary");
             Check((string)Read("animationPhase")=="Idle","safe keeps ordinary idle logic");
             Check(!AppDomain.CurrentDomain.GetAssemblies().Any(a=>a.GetName().Name=="BigBlueFish.Control"),"no MCP assembly loaded in actual process");

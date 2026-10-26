@@ -22,12 +22,12 @@ internal sealed class UpdateWindow : ModernWindow
     private bool closeRequested, closed;
     internal bool InstallerStarted { get; private set; }
 
-    internal UpdateWindow(AvailableUpdate update, string directory) : base("更新蓝色大肥鱼", "鱼鱼有新版本啦", "可更新到 " + update.Version, 630, 480)
+    internal UpdateWindow(AvailableUpdate update, string directory) : base("更新藍色大肥魚", "魚魚有新版本啦", "可更新到 " + update.Version, 630, 480)
     {
         this.update = update; this.directory = Path.GetFullPath(directory);
         Body.Children.Add(ModernUI.Text(update.Notes)); Body.Children.Add(progress); Body.Children.Add(status);
-        Actions.Children.Add(ModernUI.Button("稍后", () => { if (download != null) download.Cancel(); else Close(); }));
-        start = ModernUI.Button("下载并更新", async () => await Install(), true); Actions.Children.Add(start);
+        Actions.Children.Add(ModernUI.Button("稍後", () => { if (download != null) download.Cancel(); else Close(); }));
+        start = ModernUI.Button("下載並更新", async () => await Install(), true); Actions.Children.Add(start);
         Closing += (_, e) => { if (download != null) { closeRequested = true; download.Cancel(); e.Cancel = true; } };
         Closed += (_, _) => { closed = true; download?.Cancel(); };
     }
@@ -39,7 +39,7 @@ internal sealed class UpdateWindow : ModernWindow
         try
         {
             var installer = Path.Combine(directory, "cache", "updates", update.Name);
-            status.Text = "正在下载更新…";
+            status.Text = "正在下載更新…";
             await ArtifactDownload.Download(update.Url, installer, update.Sha256,
                 new Progress<ArtifactDownload.Progress>(p => { progress.Value = p.Percent; status.Text = p.ToString(); }), download.Token);
             // The installer waits for this exact app process to finish its normal exit.
@@ -48,7 +48,7 @@ internal sealed class UpdateWindow : ModernWindow
             process.ArgumentList.Add("--wait-pid"); process.ArgumentList.Add(Environment.ProcessId.ToString());
             Process.Start(process); InstallerStarted = true;
         }
-        catch (OperationCanceledException) { status.Text = "下载已暂停，可以稍后继续。"; }
+        catch (OperationCanceledException) { status.Text = "下載已暫停，可以稍後繼續。"; }
         catch (Exception error) { if (!closed && !closeRequested) ModernUI.Error(this, "更新未完成", error); }
         finally { download.Dispose(); download = null; start.IsEnabled = true; }
         if (InstallerStarted || closeRequested) Close();

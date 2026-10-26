@@ -14,7 +14,7 @@ using BigBlueFish.Windows;
 internal static class Program
 {
     const BindingFlags Access = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-    const string Notice = "主人，当前设置为笔记本离电暂停模型，可以在设置里调节哦。";
+    const string Notice = "主人，目前設定為筆電拔掉電源時暫停模型，可以在設定裡調整喔。";
     static int checks;
     static object Read(object o, string n) => o.GetType().GetField(n, Access)!.GetValue(o)!;
     static T Property<T>(object o, string n) => (T)o.GetType().GetProperty(n, Access)!.GetValue(o)!;
@@ -94,7 +94,7 @@ internal static class Program
             Set(preferences, "BubbleDurationIndex", 0);
             Set(preferences, "ModelEnabled", false);
             ((Task)Invoke(window, "SpeakCompanionWeather")!).GetAwaiter().GetResult(); Steady(300);
-            Check(text.Text.Contains("启用本地大模型") && bubble.Visibility == Visibility.Visible, "Disabled-model notice disappeared");
+            Check(text.Text.Contains("啟用本機大模型") && bubble.Visibility == Visibility.Visible, "Disabled-model notice disappeared");
             Set(preferences, "ModelEnabled", true);
             Power(true); Invoke(window, "ApplyCompanionPowerPolicy");
             var request = (Task)Invoke(window, "SpeakCompanionTest")!;

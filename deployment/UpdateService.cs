@@ -34,19 +34,19 @@ internal static class UpdateService
 #endif
         var assets = release.GetProperty("assets").EnumerateArray().ToArray();
         var installer = assets.FirstOrDefault(a => a.GetProperty("name").GetString() == name);
-        if (installer.ValueKind == JsonValueKind.Undefined) throw new IOException("新版本的安装器暂未准备完成，请稍后重试。");
+        if (installer.ValueKind == JsonValueKind.Undefined) throw new IOException("新版本的安裝器暫未準備完成，請稍後重試。");
         string digest = installer.TryGetProperty("digest", out var value) ? value.GetString() ?? "" : "";
         string hash = digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ? digest[7..] : "";
         if (!Regex.IsMatch(hash, "^[a-fA-F0-9]{64}$"))
         {
             var checksum = assets.FirstOrDefault(a => a.GetProperty("name").GetString() == name.Replace(".exe", ".sha256"));
-            if (checksum.ValueKind == JsonValueKind.Undefined) throw new IOException("新版本的校验文件暂未准备完成。");
+            if (checksum.ValueKind == JsonValueKind.Undefined) throw new IOException("新版本的校驗檔案暫未準備完成。");
             using var checksumRequest = new HttpRequestMessage(HttpMethod.Get, checksum.GetProperty("browser_download_url").GetString());
             checksumRequest.Headers.UserAgent.ParseAdd("BigBlueFish/" + typeof(UpdateService).Assembly.GetName().Version!.ToString(3));
             using var checksumResponse = await http.SendAsync(checksumRequest, token); checksumResponse.EnsureSuccessStatusCode();
             var line = await checksumResponse.Content.ReadAsStringAsync(token);
             hash = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-            if (!Regex.IsMatch(hash, "^[a-fA-F0-9]{64}$")) throw new InvalidDataException("更新文件校验信息无效。");
+            if (!Regex.IsMatch(hash, "^[a-fA-F0-9]{64}$")) throw new InvalidDataException("更新檔案校驗資訊無效。");
         }
         return new AvailableUpdate(version, name, installer.GetProperty("browser_download_url").GetString()!, hash.ToLowerInvariant(),
             release.GetProperty("body").GetString() ?? "");

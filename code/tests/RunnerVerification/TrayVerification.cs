@@ -46,9 +46,9 @@ internal static class TrayVerification
                 tray.Visible = true;
                 if (tray.Registered || !File.Exists("companion-errors.log")) throw new Exception("Failed Shell registration was silently accepted");
                 fail = false; tray.EnsureRegistered();
-                if (!tray.Registered || !File.ReadAllText("companion-errors.log").Contains("已恢复")) throw new Exception("Registration retry did not recover");
+                if (!tray.Registered || !File.ReadAllText("companion-errors.log").Contains("已恢復")) throw new Exception("Registration retry did not recover");
                 tray.Dispose();
-                tray = new CompanionTrayIcon { Icon = new Icon(Path.Combine(AppContext.BaseDirectory, "BigBlueFish.ico"), 32, 32), Text = "蓝色大肥鱼普通权限托盘验证" };
+                tray = new CompanionTrayIcon { Icon = new Icon(Path.Combine(AppContext.BaseDirectory, "BigBlueFish.ico"), 32, 32), Text = "藍色大肥魚普通許可權系統匣驗證" };
                 tray.Visible = true;
                 var clock = Stopwatch.StartNew();
                 while (!tray.IsPresent() && clock.Elapsed.TotalSeconds < 8)
@@ -62,7 +62,7 @@ internal static class TrayVerification
                 bool restored = false, menuOpened = false;
                 tray.DoubleClick += (_, _) => restored = true;
                 tray.ContextMenuStrip = new CompanionTrayMenu();
-                tray.ContextMenuStrip.Items.Add("显示桌宠");
+                tray.ContextMenuStrip.Items.Add("顯示桌寵");
                 tray.ContextMenuStrip.Opened += (_, _) => menuOpened = true;
                 SendMessage(tray.Handle, 0x8001, new IntPtr(1), new IntPtr(0x202));
                 if (!restored) throw new Exception("Native left click did not reach restore callback");

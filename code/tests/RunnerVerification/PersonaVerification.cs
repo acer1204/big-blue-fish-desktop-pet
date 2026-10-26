@@ -14,7 +14,7 @@ internal static class PersonaVerification
         var handle = CompanionNative.GetForegroundWindow();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(100));
         var snapshot = await CompanionOcr.ReadAsync(handle, cancellation.Token);
-        var context = $"现在是{DateTime.Now:yyyy年M月d日 HH:mm}。\n" + snapshot.Context;
+        var context = $"現在是{DateTime.Now:yyyy年M月d日 HH:mm}。\n" + snapshot.Context;
         using var brain = new CompanionBrain { StopOnBattery = false };
         await brain.WarmUp();
         var complete = typeof(CompanionBrain).GetMethod("Complete", BindingFlags.Instance | BindingFlags.NonPublic)!;

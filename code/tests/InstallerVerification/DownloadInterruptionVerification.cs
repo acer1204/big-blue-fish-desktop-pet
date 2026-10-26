@@ -114,7 +114,7 @@ internal static partial class DeploymentVerification
                 w.Show(); Pump(); return w;
             }
             var window = Create();
-            Check(!Children<Button>(window).Any(b => b.Content?.ToString() == "暂停下载"), "model installer does not expose pause button");
+            Check(!Children<Button>(window).Any(b => b.Content?.ToString() == "暫停下載"), "model installer does not expose pause button");
             Task Begin() => (Task)typeof(ModelInstallWindow).GetMethod("Install", flags)!.Invoke(window, null)!;
             var transfer = Begin();
             Until(() => File.Exists(path + ".partial") && new FileInfo(path + ".partial").Length > 0);
@@ -134,12 +134,12 @@ internal static partial class DeploymentVerification
                 var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
                 timer.Tick += (_, _) =>
                 {
-                    var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "放弃自动安装？");
+                    var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "放棄自動安裝？");
                     if (dialog == null) return;
                     timer.Stop(); selected = true;
-                    Check(Children<System.Windows.Controls.TextBlock>(dialog).Any(t => t.Text == "放弃自动安装会删除已下载的部分模型，您可以手动安装模型。"), "abandon notice matches requested text");
+                    Check(Children<System.Windows.Controls.TextBlock>(dialog).Any(t => t.Text == "放棄自動安裝會刪除已下載的部分模型，您可以手動安裝模型。"), "abandon notice matches requested text");
                     var buttons = ((ModernWindow)dialog).Actions.Children.OfType<Button>().ToArray();
-                    Check(buttons.Select(b => b.Content?.ToString()).SequenceEqual(new[] { "放弃自动安装", "不要放弃" }), "abandon notice has exactly the requested choices");
+                    Check(buttons.Select(b => b.Content?.ToString()).SequenceEqual(new[] { "放棄自動安裝", "不要放棄" }), "abandon notice has exactly the requested choices");
                     Check(File.Exists(path + ".partial"), "confirmation alone does not discard partial bytes");
                     if (choice < 0) dialog.Close(); else buttons[choice].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 };
@@ -181,7 +181,7 @@ internal static partial class DeploymentVerification
         string domestic = Path.Combine(root, "domestic-pending"); Directory.CreateDirectory(Path.Combine(domestic, "models"));
         File.WriteAllBytes(Path.Combine(domestic, "models", ModelStore.Domestic.FileName) + ".partial", bytes[..123]);
         var reopened = new ModelInstallWindow(domestic, openAddress: _ => { }); reopened.Show(); Pump();
-        Check(((System.Windows.Controls.RadioButton)typeof(ModelInstallWindow).GetField("domestic", flags)!.GetValue(reopened)!).IsChecked == true && ((Button)typeof(ModelInstallWindow).GetField("install", flags)!.GetValue(reopened)!).Content?.ToString() == "继续下载", "reopening pending domestic download selects its source and resume action");
+        Check(((System.Windows.Controls.RadioButton)typeof(ModelInstallWindow).GetField("domestic", flags)!.GetValue(reopened)!).IsChecked == true && ((Button)typeof(ModelInstallWindow).GetField("install", flags)!.GetValue(reopened)!).Content?.ToString() == "繼續下載", "reopening pending domestic download selects its source and resume action");
         reopened.Close(); Pump();
     }
 }

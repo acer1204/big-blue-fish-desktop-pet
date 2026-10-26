@@ -9,7 +9,7 @@ namespace BigBlueFish.Windows;
 
 public partial class MainWindow
 {
-    private const string BatteryPauseNotice = "主人，当前设置为笔记本离电暂停模型，可以在设置里调节哦。";
+    private const string BatteryPauseNotice = "主人，目前設定為筆電拔掉電源時暫停模型，可以在設定裡調整喔。";
 
     private void BuildCompanionContextMenu()
     {
@@ -24,19 +24,19 @@ public partial class MainWindow
             Foreground = new SolidColorBrush(Color.FromRgb(80, 96, 152)),
             VerticalAlignment = VerticalAlignment.Center
         };
-        var settings = new MenuItem { Header = "设置" };
+        var settings = new MenuItem { Header = "設定" };
         settings.Icon = Icon("\uE713");
         settings.Click += (_, _) => { companionContextMenu.IsOpen = false; OpenCompanionSettings(); };
-        var weather = new MenuItem { Header = "天气" };
+        var weather = new MenuItem { Header = "天氣" };
         weather.Icon = Icon("\uE706");
         weather.Click += async (_, _) => { companionContextMenu.IsOpen = false; await SpeakCompanionWeather(); };
         companionContextMenu.Items.Add(settings);
         companionContextMenu.Items.Add(weather);
-        var test = new MenuItem { Header = "吐字测试" };
+        var test = new MenuItem { Header = "吐字測試" };
         test.Icon = Icon("\uE8F2");
         test.Click += async (_, _) => { companionContextMenu.IsOpen = false; await SpeakCompanionTest(); };
         companionContextMenu.Items.Add(test);
-        var hide = new MenuItem { Header = "隐藏桌宠" };
+        var hide = new MenuItem { Header = "隱藏桌寵" };
         hide.Icon = Icon("\uE8A7");
         hide.Click += (_, _) => { companionContextMenu.IsOpen = false; HideCompanion(); };
         companionContextMenu.Items.Add(hide);
@@ -50,7 +50,7 @@ public partial class MainWindow
         if (hiddenByUser) RestoreCompanion();
         if (!preferences.ModelEnabled)
         {
-            ShowCompanionNotice("主人，请先在设置里启用本地大模型，再来查看天气吧～");
+            ShowCompanionNotice("主人，請先在設定裡啟用本機大模型，再來檢視天氣吧～");
             return;
         }
         if (!brain.CanRunOnCurrentPower)
@@ -63,14 +63,14 @@ public partial class MainWindow
         string regionCode = preferences.WeatherRegionCode;
         try
         {
-            ShowCompanionNotice("主人，正在查看" + CompanionRegions.FullName(CompanionRegions.District(regionCode)) + "的天气～");
+            ShowCompanionNotice("主人，正在檢視" + CompanionRegions.FullName(CompanionRegions.District(regionCode)) + "的天氣～");
             // Let an in-flight warm-up or utterance finish; automatic speech yields to this request.
             var deadline = DateTime.UtcNow.AddSeconds(100);
             while (brain.Busy && DateTime.UtcNow < deadline && !companionClosed && brain.CanRunOnCurrentPower)
                 await Task.Delay(100);
             if (version != speechRequestVersion || companionClosed || !preferences.ModelEnabled || !brain.CanRunOnCurrentPower || regionCode != preferences.WeatherRegionCode)
                 return;
-            if (brain.Busy) { ShowCompanionNotice("主人，模型暂时还在忙，请稍后再试一下～"); return; }
+            if (brain.Busy) { ShowCompanionNotice("主人，模型暫時還在忙，請稍後再試一下～"); return; }
             BeginModelSpeech();
             string text;
             try
@@ -101,7 +101,7 @@ public partial class MainWindow
         if (hiddenByUser) RestoreCompanion();
         if (!preferences.ModelEnabled)
         {
-            ShowCompanionNotice("主人，当前设置暂停了模型，请启用模型并确认供电设置后再测试～");
+            ShowCompanionNotice("主人，目前設定暫停了模型，請啟用模型並確認供電設定後再測試～");
             return Task.CompletedTask;
         }
         if (!brain.CanRunOnCurrentPower)
@@ -117,9 +117,9 @@ public partial class MainWindow
 
     private void AddCompanionRegionSelectors(Panel panel)
     {
-        panel.Children.Add(new TextBlock { Text = "天气地点", Margin = new Thickness(0, 10, 0, 4) });
+        panel.Children.Add(new TextBlock { Text = "天氣地點", Margin = new Thickness(0, 10, 0, 4) });
         var grid = new Grid();
-        for (int i = 0; i < 3; i++) grid.ColumnDefinitions.Add(new ColumnDefinition());
+        for (int i = 0; i < 2; i++) grid.ColumnDefinitions.Add(new ColumnDefinition());
         ComboBox Selector(string name, string caption, int column)
         {
             var columnPanel = new StackPanel { Margin = new Thickness(column == 0 ? 0 : 6, 0, 0, 0) };
@@ -131,17 +131,16 @@ public partial class MainWindow
             grid.Children.Add(columnPanel);
             return combo;
         }
-        var province = Selector("WeatherProvince", "省 / 自治区 / 直辖市", 0);
-        var city = Selector("WeatherCity", "市 / 州", 1);
-        var district = Selector("WeatherDistrict", "县 / 区", 2);
+        var city = Selector("WeatherCounty", "縣市", 0);
+        var district = Selector("WeatherTown", "鄉鎮市區", 1);
+        // An older non-Taiwan choice stays saved until the user picks a township here.
         var selected = CompanionRegions.District(preferences.WeatherRegionCode);
-        var selectedCity = CompanionRegions.Parent(selected);
-        province.ItemsSource = CompanionRegions.Children("0");
-        province.SelectedValue = selectedCity.ParentCode;
-        city.ItemsSource = CompanionRegions.Children(selectedCity.ParentCode);
-        city.SelectedValue = selectedCity.Code;
-        district.ItemsSource = CompanionRegions.Children(selectedCity.Code);
-        district.SelectedValue = selected.Code;
+        var counties = CompanionRegions.Children(CompanionRegions.TaiwanRoot);
+        var selectedCity = CompanionRegions.IsTaiwan(selected) ? selected.ParentCode : counties[0].Code;
+        city.ItemsSource = counties;
+        city.SelectedValue = selectedCity;
+        district.ItemsSource = CompanionRegions.Children(selectedCity);
+        if (CompanionRegions.IsTaiwan(selected)) district.SelectedValue = selected.Code;
         bool changing = false;
         void SaveRegion()
         {
@@ -151,17 +150,6 @@ public partial class MainWindow
             brain.WeatherRegionCode = region.Code;
             SaveCompanion();
         }
-        province.SelectionChanged += (_, _) =>
-        {
-            if (changing || province.SelectedItem is not CompanionRegion region) return;
-            changing = true;
-            city.ItemsSource = CompanionRegions.Children(region.Code);
-            city.SelectedIndex = 0;
-            district.ItemsSource = city.SelectedItem is CompanionRegion c ? CompanionRegions.Children(c.Code) : Array.Empty<CompanionRegion>();
-            district.SelectedIndex = 0;
-            changing = false;
-            SaveRegion();
-        };
         city.SelectionChanged += (_, _) =>
         {
             if (changing || city.SelectedItem is not CompanionRegion region) return;
@@ -173,7 +161,17 @@ public partial class MainWindow
         };
         district.SelectionChanged += (_, _) => { if (!changing) SaveRegion(); };
         panel.Children.Add(grid);
-        panel.Children.Add(new TextBlock { Text = "天气来自 Open-Meteo，按所选区县中心附近估算。", FontSize = 11,
+        panel.Children.Add(new TextBlock { Text = "中央氣象署授權碼（以目前 Windows 帳戶加密儲存，不提供給 MCP）", Margin = new Thickness(0, 12, 0, 4) });
+        var cwaKey = new PasswordBox { Password = preferences.CwaApiKey, Padding = new Thickness(6, 4, 6, 4) };
+        System.Windows.Automation.AutomationProperties.SetName(cwaKey, "中央氣象署授權碼");
+        cwaKey.PasswordChanged += (_, _) =>
+        {
+            preferences.CwaApiKey = cwaKey.Password;
+            brain.CwaApiKey = preferences.CwaApiKey;
+            SaveCompanion();
+        };
+        panel.Children.Add(cwaKey);
+        panel.Children.Add(new TextBlock { Text = "天氣來自中央氣象署開放資料的鄉鎮天氣預報；授權碼可在氣象資料開放平臺免費申請。", FontSize = 11,
             Foreground = System.Windows.Media.Brushes.SlateGray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 4) });
     }
 }

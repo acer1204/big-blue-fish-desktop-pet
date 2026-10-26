@@ -2,13 +2,13 @@
 function Get-ModelSources {
     @(
         [pscustomobject]@{
-            Id='huggingface'; Label='Hugging Face（推荐）'; FileName='Qwen3.5-4B-heretic-Q4_K_M.gguf'
+            Id='huggingface'; Label='Hugging Face（推薦）'; FileName='Qwen3.5-4B-heretic-Q4_K_M.gguf'
             Url='https://huggingface.co/Biomanticus/Qwen3.5-4B-heretic-gguf/resolve/b63ff4662e4863cfa005c9cd8ed34b87ed44b7e1/Qwen3.5-4B-heretic-f16_Q4_K_M.gguf?download=true'
             Page='https://huggingface.co/Biomanticus/Qwen3.5-4B-heretic-gguf/tree/b63ff4662e4863cfa005c9cd8ed34b87ed44b7e1'
             Sha256='8485535a36c9f333574d08b650ad698ac02ec30752bd9cd87e493a3b7531bee1'
         }
         [pscustomobject]@{
-            Id='modelscope'; Label='国内源（稳定）'; FileName='qwen3-5-4B-Q4_K_M.gguf'
+            Id='modelscope'; Label='國內來源（穩定）'; FileName='qwen3-5-4B-Q4_K_M.gguf'
             Url='https://modelscope.cn/models/diodel/Qwen3.5-4B-Q4_K_M-GGUF/resolve/124e4a76470ea89369ecddc493a8c1d75e3c9498/qwen3-5-4B-Q4_K_M.gguf'
             Page='https://modelscope.cn/models/diodel/Qwen3.5-4B-Q4_K_M-GGUF/files'
             Sha256='de8e96cd0d0c358487091aaaed1346bc02e61da3d4b412c833662702e233e78c'
@@ -47,7 +47,7 @@ function Resolve-DevelopmentModel([string]$ModelsDirectory,[switch]$NoModel) {
     if($null -ne $selection.FileName){
         $name=[string]$selection.FileName
         if([IO.Path]::GetFileName($name) -cne $name -or !(Test-ModelGguf (Join-Path $ModelsDirectory $name))){
-            throw "选择记录中的模型不可用：$name。请运行 Setup-Model.ps1 准备模型，或使用 -NoModel。"
+            throw "選擇記錄中的模型不可用：$name。請執行 Setup-Model.ps1 準備模型，或使用 -NoModel。"
         }
         return $selection
     }
@@ -58,14 +58,14 @@ function Resolve-DevelopmentModel([string]$ModelsDirectory,[switch]$NoModel) {
             return [pscustomobject]@{ Source=$source.Id; FileName=$name; Sha256=$null }
         }
     }
-    throw '没有找到已选择的 GGUF 模型。请运行 Setup-Model.ps1 准备模型，或使用 -NoModel。'
+    throw '沒有找到已選擇的 GGUF 模型。請執行 Setup-Model.ps1 準備模型，或使用 -NoModel。'
 }
 
 function Set-DevelopmentJunction([string]$Path,[string]$Target) {
     $resolved=(Resolve-Path -LiteralPath $Target).Path
     $existing=Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
     if($existing){
-        if($existing.LinkType -ne 'Junction'){throw "目录已存在且不是开发目录连接，请检查：$Path"}
+        if($existing.LinkType -ne 'Junction'){throw "目錄已存在且不是開發目錄連線，請檢查：$Path"}
         if([IO.Path]::GetFullPath([string]$existing.Target) -ieq $resolved){return}
         # Delete only the junction itself, never recurse into the shared runtime/model directory.
         [IO.Directory]::Delete($existing.FullName)

@@ -103,7 +103,7 @@ public partial class MainWindow
         return await Dispatcher.InvokeAsync(async () =>
         {
             token.ThrowIfCancellationRequested();
-            if (!preferences.McpEnabled || companionClosed || exitAnimation) throw new InvalidOperationException("MCP 接口已关闭或桌宠正在退出。");
+            if (!preferences.McpEnabled || companionClosed || exitAnimation) throw new InvalidOperationException("MCP 介面已關閉或桌寵正在退出。");
             switch (name)
             {
                 case "get_settings":
@@ -117,7 +117,7 @@ public partial class MainWindow
                     return ControlTools.Text(animationPolicy.Rules.Select(r => new { action = r.Id, pool = r.Pool, weight = r.Weight, duration_seconds = r.Pool == "Greeting" ? 10 / 1.5 : 10 }));
                 case "capture_foreground": case "capture_screen":
                     var handle = CompanionNative.ResolveSpeechForeground(CompanionNative.GetForegroundWindow(), lastExternalForeground);
-                    var identity = name == "capture_foreground" ? CompanionNative.ForegroundIdentity(handle) : "全部显示器组成的完整桌面";
+                    var identity = name == "capture_foreground" ? CompanionNative.ForegroundIdentity(handle) : "全部顯示器組成的完整桌面";
                     var limit = ControlTools.ImageLimit(args, name == "capture_foreground" ? 2560 : 4096);
                     var image = await Task.Run(() => {
                         token.ThrowIfCancellationRequested();
@@ -125,11 +125,11 @@ public partial class MainWindow
                     }, token);
                     token.ThrowIfCancellationRequested();
                     if (!preferences.McpEnabled) throw new OperationCanceledException();
-                    if (image == null) throw new IOException("未能截取屏幕。");
+                    if (image == null) throw new IOException("未能擷取螢幕。");
                     return ControlTools.Image(image.DataUrl, new { target = name, identity, image.Width, image.Height, capturedAt = DateTimeOffset.UtcNow });
                 case "play_action": case "interrupt_action":
                     var action = ControlTools.RequiredText(args, "action", 200);
-                    if (!companionReady || !animationPolicy.Rules.Any(r => r.Id == action)) throw new ArgumentException("动作不存在或播放器尚未就绪。");
+                    if (!companionReady || !animationPolicy.Rules.Any(r => r.Id == action)) throw new ArgumentException("動作不存在或播放器尚未就緒。");
                     if (name == "interrupt_action")
                     {
                         mcpActions.Clear(); CancelMovement();
@@ -137,7 +137,7 @@ public partial class MainWindow
                     }
                     else
                     {
-                        if (mcpActions.Count >= 100) throw new InvalidOperationException("待播放动作队列已满。");
+                        if (mcpActions.Count >= 100) throw new InvalidOperationException("待播放動作佇列已滿。");
                         mcpActions.Enqueue(action);
 
                     }
@@ -152,17 +152,18 @@ public partial class MainWindow
     }
     private Dictionary<string, object?> CurrentMcpSettings()
     {
-        var result = typeof(CompanionPreferences).GetProperties().ToDictionary(p => p.Name, p => p.GetValue(preferences));
+        var result = typeof(CompanionPreferences).GetProperties().Where(p => !CompanionPreferences.PrivateSettings.Contains(p.Name))
+            .ToDictionary(p => p.Name, p => p.GetValue(preferences));
         result["StartupEnabled"] = StartupEnabled();
         return result;
     }
     private async Task UpdateMcpSettings(JsonElement args, CancellationToken token)
     {
-        if (!args.TryGetProperty("settings", out var patch) || patch.ValueKind != JsonValueKind.Object) throw new ArgumentException("settings 必须为对象。");
+        if (!args.TryGetProperty("settings", out var patch) || patch.ValueKind != JsonValueKind.Object) throw new ArgumentException("settings 必須為物件。");
         var values = new Dictionary<string, object?>();
         foreach (var property in patch.EnumerateObject())
         {
-            if (!ControlTools.SettingNames.Contains(property.Name)) throw new ArgumentException(property.Name == "McpEnabled" ? "MCP 接口只能由用户在设置中开启或关闭。" : "未知设置：" + property.Name);
+            if (!ControlTools.SettingNames.Contains(property.Name)) throw new ArgumentException(property.Name == "McpEnabled" ? "MCP 介面只能由使用者在設定中開啟或關閉。" : "未知設定：" + property.Name);
             if (property.Name == "StartupEnabled") { values[property.Name] = property.Value.GetBoolean(); continue; }
             var field = typeof(CompanionPreferences).GetProperty(property.Name)!;
             values[property.Name] = JsonSerializer.Deserialize(property.Value.GetRawText(), field.PropertyType);
@@ -181,10 +182,10 @@ public partial class MainWindow
                 "LastBrushDate" => item.Value == null || item.Value is string date && DateTime.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _),
                 "Left" or "Top" => item.Value == null || Range(-1000000, 1000000),
                 _ => item.Value is bool };
-            if (!valid) throw new ArgumentException("设置值无效：" + item.Key);
+            if (!valid) throw new ArgumentException("設定值無效：" + item.Key);
         }
         if (values.TryGetValue("PuppetMode", out var puppet) && puppet is true && !preferences.PuppetMode
-            && !await ConfirmMcp(companionSettings, "开启提线木偶模式", ControlTools.PuppetWarning, token)) throw new OperationCanceledException("用户取消开启提线木偶模式。");
+            && !await ConfirmMcp(companionSettings, "開啟提線木偶模式", ControlTools.PuppetWarning, token)) throw new OperationCanceledException("使用者取消開啟提線木偶模式。");
         token.ThrowIfCancellationRequested();
         if (!preferences.McpEnabled) throw new OperationCanceledException();
         bool oldGpu = preferences.GpuEnabled, oldModel = preferences.ModelEnabled;
@@ -211,37 +212,37 @@ public partial class MainWindow
     }
     private Action AddMcpSettings(StackPanel panel, Window owner)
     {
-        var enabled = new CheckBox { Content = "开启 MCP 接口", IsChecked = preferences.McpEnabled, Margin = new(0, 12, 0, 4) };
+        var enabled = new CheckBox { Content = "開啟 MCP 介面", IsChecked = preferences.McpEnabled, Margin = new(0, 12, 0, 4) };
         panel.Children.Add(enabled);
-        panel.Children.Add(new TextBlock { Text = "开启后行为可被其他 Agent 控制", Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = "開啟後行為可被其他 Agent 控制", Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap });
         var extra = new StackPanel { Visibility = preferences.McpEnabled ? Visibility.Visible : Visibility.Collapsed, Margin = new(0, 8, 0, 0) };
-        var puppet = new CheckBox { Content = "提线木偶模式", IsChecked = preferences.PuppetMode, Margin = new(0, 7, 0, 4) };
+        var puppet = new CheckBox { Content = "提線木偶模式", IsChecked = preferences.PuppetMode, Margin = new(0, 7, 0, 4) };
         extra.Children.Add(puppet);
-        extra.Children.Add(new TextBlock { Text = "关闭大肥鱼自身的吐字和动作切换逻辑，完全由外部 Agent 接管", Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap });
-        var chat = new CheckBox { Content = "双击与鱼鱼对话", IsChecked = preferences.McpChatEnabled, Margin = new(0, 16, 0, 4) };
+        extra.Children.Add(new TextBlock { Text = "關閉大肥魚自身的吐字和動作切換邏輯，完全由外部 Agent 接管", Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap });
+        var chat = new CheckBox { Content = "雙擊與魚魚對話", IsChecked = preferences.McpChatEnabled, Margin = new(0, 16, 0, 4) };
         chat.Click += (_, _) => { preferences.McpChatEnabled = chat.IsChecked == true; if (!preferences.McpChatEnabled) mcpInput?.Close(); SaveCompanion(); };
         extra.Children.Add(chat);
-        extra.Children.Add(new TextBlock { Text = "仅在 MCP 客户端已连接时生效，输入内容通过 MCP 发送给已连接的 Agent。", Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap });
-        var config = new Button { Content = "复制 MCP 连接配置", Margin = new(0, 12, 0, 8) };
+        extra.Children.Add(new TextBlock { Text = "僅在 MCP 客戶端已連線時生效，輸入內容通過 MCP 傳送給已連線的 Agent。", Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap });
+        var config = new Button { Content = "複製 MCP 連線配置", Margin = new(0, 12, 0, 8) };
         config.Click += (_, _) => {
             var command = Path.Combine(AppContext.BaseDirectory, "BigBlueFish.Mcp.exe");
             Clipboard.SetText(JsonSerializer.Serialize(new { mcpServers = new Dictionary<string, object> { ["big-blue-fish"] = new { command, args = Array.Empty<string>() } } }, new JsonSerializerOptions { WriteIndented = true }));
-            config.Content = "连接配置已复制";
+            config.Content = "連線配置已複製";
         };
         extra.Children.Add(config);
         var status = new TextBlock { Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap };
         extra.Children.Add(status);
         var clock = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        clock.Tick += (_, _) => status.Text = $"已连接 {mcpServer?.Connections ?? 0} 个 MCP 客户端";
+        clock.Tick += (_, _) => status.Text = $"已連線 {mcpServer?.Connections ?? 0} 個 MCP 客戶端";
         clock.Start();
         panel.Children.Add(extra);
         enabled.Click += async (_, _) => {
             enabled.IsEnabled = false;
             try {
             bool on = enabled.IsChecked == true;
-            if (on && !await ConfirmMcp(owner, "开启 MCP 接口", ControlTools.PrivacyWarning)) { enabled.IsChecked = false; return; }
+            if (on && !await ConfirmMcp(owner, "開啟 MCP 介面", ControlTools.PrivacyWarning)) { enabled.IsChecked = false; return; }
             if (on && !File.Exists(Path.Combine(AppContext.BaseDirectory, "BigBlueFish.Mcp.exe"))) {
-                ModernUI.Choice(owner, "MCP 组件未就绪", "请使用包含 MCP 组件的完整标准版安装包。", "确定"); enabled.IsChecked = false; return;
+                ModernUI.Choice(owner, "MCP 元件未就緒", "請使用包含 MCP 元件的完整標準版安裝程式。", "確定"); enabled.IsChecked = false; return;
             }
             if (!on) SetPuppetMode(false);
             preferences.McpEnabled = on;
@@ -254,7 +255,7 @@ public partial class MainWindow
             puppet.IsEnabled = false;
             try {
             bool on = puppet.IsChecked == true;
-            if (on && !await ConfirmMcp(owner, "开启提线木偶模式", ControlTools.PuppetWarning)) { puppet.IsChecked = false; return; }
+            if (on && !await ConfirmMcp(owner, "開啟提線木偶模式", ControlTools.PuppetWarning)) { puppet.IsChecked = false; return; }
             SetPuppetMode(on); SaveCompanion();
             } finally { puppet.IsEnabled = true; }
         };
@@ -262,7 +263,7 @@ public partial class MainWindow
     }
     private async Task<bool> ConfirmMcp(Window? owner, string title, string message, CancellationToken token = default)
     {
-        if (mcpConsentOpen) throw new InvalidOperationException("请先处理已打开的 MCP 提示窗口。");
+        if (mcpConsentOpen) throw new InvalidOperationException("請先處理已開啟的 MCP 提示視窗。");
         mcpConsentOpen = true;
         try
         {
@@ -272,7 +273,7 @@ public partial class MainWindow
             var finished = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dialog.Closed += (_, _) => finished.TrySetResult(accepted && !token.IsCancellationRequested);
             mcpConsentWindow = dialog;
-            dialog.Actions.Children.Add(ModernUI.Button("了解并开启", () => { accepted = true; dialog.Close(); }, true));
+            dialog.Actions.Children.Add(ModernUI.Button("瞭解並開啟", () => { accepted = true; dialog.Close(); }, true));
             dialog.Actions.Children.Add(ModernUI.Button("取消", dialog.Close));
             using var registration = token.Register(() => Dispatcher.BeginInvoke(() => { accepted = false; dialog.Close(); }));
             dialog.Show();
@@ -284,7 +285,7 @@ public partial class MainWindow
     {
         if (!McpInputAvailable || exitAnimation || companionClosed) return false;
         if (mcpInput != null) { mcpInput.Show(); mcpInput.Activate(); return true; }
-        const string hint = "通过鱼鱼和已连接的Agent说话";
+        const string hint = "通過魚魚和已連線的Agent說話";
         var blue = new SolidColorBrush(global::BigBlueFish.Windows.CompanionBubble.HairBlue);
         var text = new TextBox { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MaxLength = 4000,
             Height = 56, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
@@ -293,14 +294,14 @@ public partial class MainWindow
         var placeholder = new TextBlock { Text = hint, Foreground = Brushes.Gray, FontSize = 14,
             Margin = new Thickness(2, 4, 22, 0), IsHitTestVisible = false, TextWrapping = TextWrapping.Wrap };
         var editor = new Grid(); editor.Children.Add(text); editor.Children.Add(placeholder);
-        var status = new TextBlock { Text = "Ctrl+Enter 发送", Foreground = Brushes.SlateGray, FontSize = 11,
+        var status = new TextBlock { Text = "Ctrl+Enter 傳送", Foreground = Brushes.SlateGray, FontSize = 11,
             VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 8, 0) };
         var content = new StackPanel(); content.Children.Add(editor);
         var frame = new Border { Background = new SolidColorBrush(Color.FromRgb(255, 251, 244)), BorderBrush = blue,
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(14), Padding = new Thickness(12), Child = content };
-        var window = new Window { Title = "蓝色大肥鱼 · 输入", Width = 354, Height = 120, WindowStyle = WindowStyle.None,
+        var window = new Window { Title = "藍色大肥魚 · 輸入", Width = 354, Height = 120, WindowStyle = WindowStyle.None,
             AllowsTransparency = true, Background = Brushes.Transparent, ResizeMode = ResizeMode.NoResize,
-            ShowInTaskbar = false, ShowActivated = false, Topmost = true, Owner = this, Content = frame, FontFamily = new FontFamily("Microsoft YaHei UI") };
+            ShowInTaskbar = false, ShowActivated = false, Topmost = true, Owner = this, Content = frame, FontFamily = new FontFamily("Microsoft JhengHei UI") };
         using (var theme = typeof(ModernWindow).Assembly.GetManifestResourceStream("BigBlueFish.ModernTheme.xaml")!)
         {
             var resources = (ResourceDictionary)System.Windows.Markup.XamlReader.Load(theme);
@@ -309,15 +310,15 @@ public partial class MainWindow
         var close = new Button { Content = "×", Width = 20, Height = 20, Padding = new Thickness(0), FontSize = 16,
             MinHeight = 0, Margin = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-            Foreground = blue, Background = Brushes.Transparent, BorderThickness = new Thickness(0), ToolTip = "收起输入框" };
+            Foreground = blue, Background = Brushes.Transparent, BorderThickness = new Thickness(0), ToolTip = "收起輸入框" };
         close.Click += (_, _) => window.Close(); editor.Children.Add(close);
         void Send()
         {
             if (!McpInputAvailable || string.IsNullOrWhiteSpace(text.Text)) return;
             PublishMcpInteraction("user_message", new { text = text.Text });
-            text.Clear(); status.Text = "已发送给 Agent"; text.Focus();
+            text.Clear(); status.Text = "已傳送給 Agent"; text.Focus();
         }
-        var send = ModernUI.Button("发送", Send, true); send.MinWidth = 58; send.MinHeight = 0; send.Margin = new Thickness(0); send.Padding = new Thickness(12, 5, 12, 5); send.FontSize = 12;
+        var send = ModernUI.Button("傳送", Send, true); send.MinWidth = 58; send.MinHeight = 0; send.Margin = new Thickness(0); send.Padding = new Thickness(12, 5, 12, 5); send.FontSize = 12;
         var actions = new Grid { Margin = new Thickness(0, 4, 0, 0) };
         actions.ColumnDefinitions.Add(new ColumnDefinition()); actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         actions.Children.Add(status); actions.Children.Add(send); Grid.SetColumn(send, 1); content.Children.Add(actions);
@@ -353,8 +354,8 @@ public partial class MainWindow
             if (!preferences.McpEnabled || !preferences.McpChatEnabled) { window.Close(); return; }
             Follow();
             send.IsEnabled = McpInputAvailable && !string.IsNullOrWhiteSpace(text.Text);
-            if (!McpInputAvailable) status.Text = "Agent 已断开，重新连接后可发送。";
-            else if (status.Text.StartsWith("Agent 已断开")) status.Text = "Ctrl+Enter 发送";
+            if (!McpInputAvailable) status.Text = "Agent 已斷開，重新連線後可傳送。";
+            else if (status.Text.StartsWith("Agent 已斷開")) status.Text = "Ctrl+Enter 傳送";
         };
         clock.Start(); mcpInput = window;
         window.Closed += (_, _) => { clock.Stop(); LocationChanged -= moved; SizeChanged -= resized; IsVisibleChanged -= visibility; DpiChanged -= dpiChanged; mcpInput = null; };

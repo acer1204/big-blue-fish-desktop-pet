@@ -13,7 +13,7 @@ internal sealed record CompanionWindowImage(string DataUrl, int Width, int Heigh
     {
         var comma = DataUrl.IndexOf(',');
         if (comma < 0)
-            throw new InvalidDataException("窗口图像数据格式无效");
+            throw new InvalidDataException("視窗影像資料格式無效");
         File.WriteAllBytes(path, Convert.FromBase64String(DataUrl[(comma + 1)..]));
     }
 }
@@ -132,7 +132,7 @@ internal static class CompanionScreenCapture
         using var dpi = new CaptureDpiScope();
         var bounds = System.Windows.Forms.SystemInformation.VirtualScreen;
         if (bounds.Width <= 0 || bounds.Height <= 0 || (long)bounds.Width * bounds.Height > 150_000_000)
-            throw new IOException("屏幕尺寸无效或超过可用截图范围。");
+            throw new IOException("螢幕尺寸無效或超過可用截圖範圍。");
         using var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
         using (var graphics = Graphics.FromImage(bitmap))
             graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);

@@ -73,7 +73,7 @@ internal static class Program
             mouse_event(8,0,0,0,UIntPtr.Zero); Pump(20); mouse_event(16,0,0,0,UIntPtr.Zero); Pump(150);
             var menu = (ContextMenu)Read("companionContextMenu");
             Check(menu.IsOpen, "Real right-click opens pet menu");
-            var item = menu.Items.Cast<MenuItem>().Single(i => i.Header?.ToString() == "设置");
+            var item = menu.Items.Cast<MenuItem>().Single(i => i.Header?.ToString() == "設定");
             item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); Pump(200);
             Check(!menu.IsOpen, "Settings menu command closes the menu");
         } finally { SetCursorPos(old.X,old.Y); }
@@ -82,15 +82,15 @@ internal static class Program
     {
         using var other = Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, ArgumentList = { "--focus-fixture" } })!;
         try {
-            Wait(() => { var found=FindWindow(null,"MCP 设置焦点 · 独立应用"); return found!=IntPtr.Zero && IsWindowVisible(found) && !IsIconic(found) && GetWindowRect(found,out var rect) && rect.Right-rect.Left>200; }, 10, "Independent ordinary window running");
-            var external = FindWindow(null,"MCP 设置焦点 · 独立应用");
+            Wait(() => { var found=FindWindow(null,"MCP 設定焦點 · 獨立應用"); return found!=IntPtr.Zero && IsWindowVisible(found) && !IsIconic(found) && GetWindowRect(found,out var rect) && rect.Right-rect.Left>200; }, 10, "Independent ordinary window running");
+            var external = FindWindow(null,"MCP 設定焦點 · 獨立應用");
             Pump(300);
             ClickFixture(external);
             client.Data("update_settings", new { settings = new { AnimationIntervalSeconds = 60 } }); Pump(100);
             Check(pet.GetType().GetField("companionSettings", Access)!.GetValue(pet) == null && GetForegroundWindow() == external, "MCP updates while settings closed create no settings window and keep foreground");
             Invoke("OpenCompanionSettings"); Pump(150);
             var window = (Window)Read("companionSettings"); var handle = Handle(window);
-            Descendants<Button>(window).Single(b => b.Content?.ToString() == "说话与天气").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(100);
+            Descendants<Button>(window).Single(b => b.Content?.ToString() == "說話與天氣").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(100);
             var scroll = Descendants<ScrollViewer>(window).First(v => v.Visibility == Visibility.Visible && v.Content is StackPanel);
             scroll.ScrollToVerticalOffset(70); Pump(100); double offset = scroll.VerticalOffset;
             window.Left = Math.Max(SystemParameters.WorkArea.Left + 400, window.Left); double left = window.Left, top = window.Top;
@@ -103,10 +103,10 @@ internal static class Program
                     "Native settings window remains non-topmost and enabled " + i);
             }
             var currentScroll = Descendants<ScrollViewer>(window).First(v => v.Visibility == Visibility.Visible && v.Content is StackPanel);
-            Check(currentScroll.Content is StackPanel panel && panel.Children.OfType<TextBlock>().First().Text == "说话与天气" && Math.Abs(currentScroll.VerticalOffset-offset)<1,
+            Check(currentScroll.Content is StackPanel panel && panel.Children.OfType<TextBlock>().First().Text == "說話與天氣" && Math.Abs(currentScroll.VerticalOffset-offset)<1,
                 "Remote refresh keeps selected page and scroll position");
             Check(window.Left == left && window.Top == top, "Remote refresh keeps window location");
-            Check(Descendants<Slider>(window).Single(s => System.Windows.Automation.AutomationProperties.GetName(s) == "文字气泡大小").Value == 1.2,
+            Check(Descendants<Slider>(window).Single(s => System.Windows.Automation.AutomationProperties.GetName(s) == "文字氣泡大小").Value == 1.2,
                 "Remote value appears in existing controls");
             window.WindowState = WindowState.Minimized; Pump(100); ClickFixture(external);
             client.Data("update_settings", new { settings = new { SpeechMinMinutes = 5 } }); Pump(120);
@@ -197,8 +197,8 @@ internal static class Program
     {
         if (args.Length == 1 && args[0] == "--focus-fixture") {
             var fixtureApp = new System.Windows.Application();
-            fixtureApp.Run(new Window { Title = "MCP 设置焦点 · 独立应用", Left = SystemParameters.WorkArea.Left+15, Top = SystemParameters.WorkArea.Top+15, Width = 340, Height = 180,
-                Content = new TextBlock { Text = "普通应用：检查设置窗口不会抢占前台", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(20) } }); return 0;
+            fixtureApp.Run(new Window { Title = "MCP 設定焦點 · 獨立應用", Left = SystemParameters.WorkArea.Left+15, Top = SystemParameters.WorkArea.Top+15, Width = 340, Height = 180,
+                Content = new TextBlock { Text = "普通應用：檢查設定視窗不會搶佔前臺", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(20) } }); return 0;
         }
         string sandbox = Path.GetFullPath(args[0]); Directory.CreateDirectory(sandbox); Environment.CurrentDirectory = sandbox;
         File.Copy(Path.Combine(AppContext.BaseDirectory, "BigBlueFish.ico"), Path.Combine(sandbox, "BigBlueFish.ico"), true);
@@ -209,12 +209,12 @@ internal static class Program
             pet = new MainWindow(); pet.Show(); Wait(() => (bool)Read("companionReady"), 8, "Actual video initialized");
             Invoke("OpenCompanionSettings"); Pump(150);
             var settings = (Window)Read("companionSettings");
-            Descendants<Button>(settings).Single(b => b.Content?.ToString() == "Agent 与 MCP").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
-            var toggle = Descendants<CheckBox>(settings).Single(c => c.Content?.ToString() == "开启 MCP 接口");
+            Descendants<Button>(settings).Single(b => b.Content?.ToString() == "Agent 與 MCP").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
+            var toggle = Descendants<CheckBox>(settings).Single(c => c.Content?.ToString() == "開啟 MCP 介面");
             bool sawWarning = false;
             var dialogTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
             dialogTimer.Tick += (_, _) => {
-                var dialog = app.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "开启 MCP 接口"); if (dialog == null) return;
+                var dialog = app.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "開啟 MCP 介面"); if (dialog == null) return;
                 sawWarning = Descendants<TextBlock>(dialog).Any(t => t.Text == ControlTools.PrivacyWarning);
                 Render((Visual)dialog.Content, "mcp-warning.png", (int)dialog.ActualWidth, (int)dialog.ActualHeight);
                 Descendants<Button>(dialog).Single(b => b.Content?.ToString() == "取消").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -238,7 +238,7 @@ internal static class Program
                 Wait(() => pet.GetType().GetField("mcpInput", Access)!.GetValue(pet) != null, 4, "Actual double-click opens input with connected enabled MCP chat");
                 var inputWindow = (Window)Read("mcpInput"); Pump(150);
                 var input = Descendants<TextBox>(inputWindow).Single();
-                const string hint = "通过鱼鱼和已连接的Agent说话";
+                const string hint = "通過魚魚和已連線的Agent說話";
                 var placeholder = Descendants<TextBlock>(inputWindow).Single(t => t.Text == hint);
                 Check(inputWindow.WindowStyle == System.Windows.WindowStyle.None && !inputWindow.ShowInTaskbar && inputWindow.Owner == pet && inputWindow.Topmost, "Input is a frameless pet attachment, without independent title bar or taskbar button");
                 Check(inputWindow.Width <= 354 && inputWindow.Height <= 120 && placeholder.IsVisible && placeholder.Foreground == Brushes.Gray, "Compact input shows the exact gray placeholder while empty");
@@ -255,11 +255,11 @@ internal static class Program
                 double beforeX = inputWindow.Left, beforeY = inputWindow.Top;
                 DragPetByMouse(); Pump(100);
                 Check(Math.Abs(inputWindow.Left-beforeX)+Math.Abs(inputWindow.Top-beforeY)>5, "Input follows the actual dragged pet");
-                input.Text = "暂存草稿"; pet.Hide(); Pump(100);
-                Check(!inputWindow.IsVisible && input.Text == "暂存草稿", "Pet hiding hides the attached input and retains draft");
+                input.Text = "暫存草稿"; pet.Hide(); Pump(100);
+                Check(!inputWindow.IsVisible && input.Text == "暫存草稿", "Pet hiding hides the attached input and retains draft");
                 pet.Show(); Pump(150); inputWindow.Activate(); input.Focus();
-                Check(inputWindow.IsVisible && input.Text == "暂存草稿", "Showing the pet restores the same attached input");
-                const string submitted = "主人输入的原文\n第二行：ABC <> &，都原样传递~";
+                Check(inputWindow.IsVisible && input.Text == "暫存草稿", "Showing the pet restores the same attached input");
+                const string submitted = "主人輸入的原文\n第二行：ABC <> &，都原樣傳遞~";
                 input.Text = submitted;
                 Pump(50);
                 Check(!placeholder.IsVisible, "Placeholder disappears while typing");
@@ -277,7 +277,7 @@ internal static class Program
                 Check(client.Data("get_settings").GetProperty("settings").GetProperty("Scale").GetDouble() == 1, "Denied patch applied no fields");
                 client.Data("update_settings", new { settings = new { BubbleScale = 1.3, Scale = .85, AnimationIntervalSeconds = 70 } });
                 Check(File.ReadAllText("preferences.json").Contains("1.3"), "Settings persisted");
-                const string raw = "主人，MCP传来的原文：新衣服、标点 & <>，都应原样显示~";
+                const string raw = "主人，MCP傳來的原文：新衣服、標點 & <>，都應原樣顯示~";
                 client.Data("say", new { text = raw });
                 Wait(() => ((TextBlock)Read("bubbleText")).Text == raw, 5, "External text displayed exactly without model");
                 Check((bool)Read("externalBubble"), "External bubble is separate from model result");
@@ -292,7 +292,7 @@ internal static class Program
                 Invoke("ClickAnimation"); Check((string)Read("currentAction") == "待机呼吸休闲", "Click cannot switch puppet animation");
                 var context = (ContextMenu)Read("companionContextMenu");
                 Check(!((MenuItem)context.Items[1]).IsEnabled && !((MenuItem)context.Items[2]).IsEnabled, "Weather and speech-test disabled");
-                client.Data("say_next", new { text = "下次节奏原文" }); Field("nextSpeech", DateTime.UtcNow.AddMinutes(-1)); Pump(300);
+                client.Data("say_next", new { text = "下次節奏原文" }); Field("nextSpeech", DateTime.UtcNow.AddMinutes(-1)); Pump(300);
                 Check(((TextBlock)Read("bubbleText")).Text == raw, "Puppet never consumes scheduled speech");
                 client.Data("interrupt_action", new { action = "点击回应-元气挥手" }); Pump(250);
                 Check((string)Read("currentAction") == "点击回应-元气挥手", "Immediate action starts");
@@ -323,15 +323,15 @@ internal static class Program
                 client.Data("update_settings", new { settings = new { PuppetMode = false } });
                 Check(((MenuItem)context.Items[1]).IsEnabled && ((MenuItem)context.Items[2]).IsEnabled, "Normal menu restored");
                 Check((bool)Invoke("ConsumeMcpSpeech")!, "Queued original text available on return to cadence");
-                Wait(() => ((TextBlock)Read("bubbleText")).Text == "下次节奏原文", 3, "Scheduled MCP text exact");
+                Wait(() => ((TextBlock)Read("bubbleText")).Text == "下次節奏原文", 3, "Scheduled MCP text exact");
                 answer = AnswerPuppet(true); client.Data("update_settings", new { settings = new { PuppetMode = true } }); answer.Stop();
                 Invoke("TryOpenMcpInput"); Pump(100);
-                Descendants<TextBox>((Window)Read("mcpInput")).Single().Text = "断线时保留这条草稿";
+                Descendants<TextBox>((Window)Read("mcpInput")).Single().Text = "斷線時保留這條草稿";
             }
             Pump(600);
             var disconnectedInput = (Window)Read("mcpInput");
-            Check(!Descendants<Button>(disconnectedInput).Single(b => b.Content?.ToString() == "发送").IsEnabled, "Disconnect disables sending in the already-open input");
-            Check(Descendants<TextBox>(disconnectedInput).Single().Text == "断线时保留这条草稿", "Disconnect preserves unsent draft");
+            Check(!Descendants<Button>(disconnectedInput).Single(b => b.Content?.ToString() == "傳送").IsEnabled, "Disconnect disables sending in the already-open input");
+            Check(Descendants<TextBox>(disconnectedInput).Single().Text == "斷線時保留這條草稿", "Disconnect preserves unsent draft");
             Check(!(bool)Invoke("TryOpenMcpInput")!, "Disconnected double-click cannot open chat");
             Check((bool)pet.GetType().GetProperty("PuppetActive", Access)!.GetValue(pet)! && (string)Read("currentAction") == "待机呼吸休闲", "Disconnect keeps puppet mode and fixed idle");
             Invoke("SetPuppetMode", false); Invoke("StopMcp");
@@ -345,20 +345,20 @@ internal static class Program
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
         timer.Tick += (_, _) => {
-            var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "开启提线木偶模式");
+            var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "開啟提線木偶模式");
             if (dialog == null) return;
             Check(Descendants<TextBlock>(dialog).Any(t => t.Text == ControlTools.PuppetWarning), "Actual puppet warning displayed");
             Render((Visual)dialog.Content, "puppet-warning.png", (int)dialog.ActualWidth, (int)dialog.ActualHeight);
             timer.Stop();
             Check(IsWindowEnabled(Handle(pet)) && IsWindowEnabled(Handle(dialog)),"Pending consent keeps native pet and notice windows enabled");
             if (verifyDrag) DragPetByMouse();
-            Descendants<Button>(dialog).Single(b => b.Content?.ToString() == (accept ? "了解并开启" : "取消")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Descendants<Button>(dialog).Single(b => b.Content?.ToString() == (accept ? "瞭解並開啟" : "取消")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         };
         timer.Start(); return timer;
     }
     private sealed class Fixture : IDisposable
     {
-        internal readonly Window Window = new() { Title = "MCP前台截图验证 · 1001", Width = 640, Height = 420, Background = Brushes.LimeGreen, Content = new TextBlock { Text = "蓝色大肥鱼 MCP 截图验证\n前台内容编号：1001", FontSize = 30, Margin = new Thickness(30) } };
+        internal readonly Window Window = new() { Title = "MCP前臺截圖驗證 · 1001", Width = 640, Height = 420, Background = Brushes.LimeGreen, Content = new TextBlock { Text = "藍色大肥魚 MCP 截圖驗證\n前臺內容編號：1001", FontSize = 30, Margin = new Thickness(30) } };
         public void Dispose() => Window.Close();
     }
 }

@@ -86,9 +86,9 @@ internal sealed class CompanionTrayIcon : IDisposable
         if (!Registered && !failureReported)
         {
             failureReported = true;
-            Record("Windows 未接受托盘图标，将在后台重试。Win32=" + Marshal.GetLastWin32Error());
+            Record("Windows 未接受系統匣圖示，將在後臺重試。Win32=" + Marshal.GetLastWin32Error());
         }
-        else if (Registered && failureReported) { failureReported = false; Record("托盘图标已恢复。"); }
+        else if (Registered && failureReported) { failureReported = false; Record("系統匣圖示已恢復。"); }
         retry.Interval = TimeSpan.FromSeconds(Registered ? 30 : 3);
     }
     static void Record(string message)

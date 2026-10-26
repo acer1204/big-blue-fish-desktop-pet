@@ -48,7 +48,7 @@ internal static class MaintenanceVerification
             Check(new CompanionPreferences().HideOnFullscreen && new CompanionPreferences().CheckUpdatesOnStartup, "new fullscreen and startup-update switches default on");
             window = new MainWindow(); window.Show(); Pump();
             Check((bool)Field(window, "companionReady")!, "no-model startup loads real animation resources");
-            Check(((TextBlock)Field(window, "bubbleText")!).Text.Contains("鱼鱼给主人请安啦"), "no-model startup still shows time-based welcome");
+            Check(((TextBlock)Field(window, "bubbleText")!).Text.Contains("魚魚給主人請安啦"), "no-model startup still shows time-based welcome");
             var brain = (CompanionBrain)Field(window, "brain")!;
             Set(window, "nextSpeech", DateTime.MinValue); Set(window, "nextWarmup", DateTime.MinValue); Pump(300);
             Check(!brain.ModelAvailable && brain.RunnerPid == null && !brain.Busy, "no-model mode does not preload a runner or attempt timed generation");
@@ -56,14 +56,14 @@ internal static class MaintenanceVerification
             Check(test.IsCompleted && brain.RunnerPid == null && !(bool)Field(window, "speechRequestPending")!, "speech test without model cannot start generation");
             Invoke(window, "OpenCompanionSettings"); Pump();
             var settings = (Window)Field(window, "companionSettings")!;
-            var hide = Children<CheckBox>(settings).Single(c => (string?)c.Content == "全屏时自动隐藏桌宠");
+            var hide = Children<CheckBox>(settings).Single(c => (string?)c.Content == "全螢幕時自動隱藏桌寵");
             Set(window, "fullscreenHidden", true); window.Hide(); hide.IsChecked = false; hide.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent)); Pump();
             Check(window.IsVisible && !(bool)Field(window, "fullscreenHidden")! && !((CompanionPreferences)Field(window, "preferences")!).HideOnFullscreen, "turning off fullscreen hiding immediately restores an automatically hidden pet");
             Set(window, "hiddenByUser", true); Set(window, "fullscreenHidden", true); window.Hide(); hide.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent)); Pump();
             Check(!window.IsVisible, "fullscreen switch respects manual hiding");
             Set(window, "hiddenByUser", false); window.Show();
-            Children<Button>(settings).Single(b => (string?)b.Content == "模型与供电").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
-            var install = Children<Button>(settings).Single(b => (string?)b.Content == "安装模型");
+            Children<Button>(settings).Single(b => (string?)b.Content == "模型與供電").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
+            var install = Children<Button>(settings).Single(b => (string?)b.Content == "安裝模型");
             Check(install.IsVisible, "missing-model settings exposes installation button");
             bool shared = false;
             var close = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
@@ -71,7 +71,7 @@ internal static class MaintenanceVerification
             {
                 var dialog = app.Windows.OfType<ModelInstallWindow>().FirstOrDefault(); if (dialog == null) return;
                 shared = true; close.Stop();
-                dialog.Actions.Children.OfType<Button>().Single(b => (string?)b.Content == "先无模型启动").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                dialog.Actions.Children.OfType<Button>().Single(b => (string?)b.Content == "先無模型啟動").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             };
             close.Start(); install.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); close.Stop(); Pump();
             Check(shared && ModelStore.ReadSelection(root)?.Source == "none", "settings invokes same real model installer and persists no-model selection");
@@ -79,7 +79,7 @@ internal static class MaintenanceVerification
             Invoke(window, "RestoreCompanion"); Pump();
             Check(window.IsVisible && window.Topmost && !settings.Topmost, "pet and ordinary settings window keep their distinct Windows layer behavior");
             settings.Close(); window.Close(); Pump();
-            Check(((TextBlock)Field(window, "bubbleText")!).Text == "主人再见~鱼鱼喜欢主人哦", "no-model close still shows farewell with real greeting animation");
+            Check(((TextBlock)Field(window, "bubbleText")!).Text == "主人再見~魚魚喜歡主人喔", "no-model close still shows farewell with real greeting animation");
             Console.WriteLine($"RESULT {checks} no-model and settings behavior checks passed"); return 0;
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }

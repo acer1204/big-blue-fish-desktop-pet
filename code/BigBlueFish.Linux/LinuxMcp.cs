@@ -40,7 +40,8 @@ internal sealed partial class LinuxPetWindow
     }
     Dictionary<string, object?> CurrentSettings()
     {
-        var result = typeof(CompanionPreferences).GetProperties().ToDictionary(p => p.Name, p => p.GetValue(Preferences));
+        var result = typeof(CompanionPreferences).GetProperties().Where(p => !CompanionPreferences.PrivateSettings.Contains(p.Name))
+            .ToDictionary(p => p.Name, p => p.GetValue(Preferences));
         result["StartupEnabled"] = StartupEnabled; return result;
     }
     async Task<object> ExecuteMcp(string name, JsonElement args, CancellationToken token)

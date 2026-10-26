@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -21,9 +22,9 @@ public partial class MainWindow
     private static string WelcomeText(DateTime now)
     {
         string period = now.Hour switch { >= 5 and < 11 => "早上", >= 11 and < 14 => "中午", >= 14 and < 18 => "下午", _ => "晚上" };
-        return $"主人{period}好，鱼鱼给主人请安啦~";
+        return $"主人{period}好，魚魚給主人請安啦~";
     }
-    private const string FarewellText = "主人再见~鱼鱼喜欢主人哦";
+    private const string FarewellText = "主人再見~魚魚喜歡主人喔";
     private void ShowGreetingNotice(string text)
     {
         ShowCompanionNotice(text);
@@ -52,12 +53,15 @@ public partial class MainWindow
         videoPlayer = new(videoImage);
         videoPlayer.Failed += error =>
         {
-            File.WriteAllText("companion-errors.log", "动画播放失败：" + error);
+            File.WriteAllText("companion-errors.log", "動畫播放失敗：" + error);
             if (exitAnimation) { exitReady = true; base.Close(); return; }
             companionReady = false;
-            ShowCompanionNotice("动画未能播放，请检查动画组件是否完整。");
+            ShowCompanionNotice("動畫未能播放，請檢查動畫元件是否完整。");
         };
         videoPlayer.FramePresented += MoveWithAnimation;
+        foreach (var rule in animationPolicy.Rules.Where(r => r.Pool == "Click"))
+            videoPlayer.Preload(Path.Combine(AnimationDirectory, rule.File));
+        videoPlayer.Preload(Path.Combine(AnimationDirectory, animationPolicy.Find("被鼠标拖拽悬空反馈").File), 1.5);
         companionReady = true;
         if (PuppetActive) PlayAnimation(animationPolicy.Find("待机呼吸休闲"), "PuppetIdle");
         else { PlayAnimation(animationPolicy.Find("女仆屈膝礼仪"), "Startup"); ShowGreetingNotice(WelcomeText(DateTime.Now)); }

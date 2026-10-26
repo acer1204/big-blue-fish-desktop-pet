@@ -85,15 +85,15 @@ internal static class CompanionNative
     {
         var h = preferredHandle == IntPtr.Zero ? GetForegroundWindow() : preferredHandle;
         if (h == IntPtr.Zero)
-            return "前台窗口：Windows 桌面\n当前可见活动线索：桌面没有活动窗口标题。";
+            return "前臺視窗：Windows 桌面\n目前可見活動線索：桌面沒有活動視窗標題。";
         GetWindowThreadProcessId(h, out var id);
         if (id == Environment.ProcessId)
-            return "用户正在查看桌宠";
+            return "使用者正在檢視桌寵";
         var s = new StringBuilder(256);
         GetWindowText(h, s, 256);
         var className = new StringBuilder(128);
         GetClassName(h, className, className.Capacity);
-        string name = "未知应用";
+        string name = "未知應用";
         try
         {
             name = Process.GetProcessById((int)id).ProcessName;
@@ -106,13 +106,13 @@ internal static class CompanionNative
         return BuildForegroundContext(name, s.ToString(), className.ToString(), snapshot.Name, snapshot.ControlType, snapshot.Descendants);
     }
 
-    internal static CompanionWindowImage? ForegroundWindowImage(IntPtr preferredHandle = default)
+    internal static CompanionWindowImage? ForegroundWindowImage(IntPtr preferredHandle = default, int maxDimension = 768)
     {
         var handle = preferredHandle == IntPtr.Zero ? GetForegroundWindow() : preferredHandle;
         if (handle == IntPtr.Zero)
             return null;
         GetWindowThreadProcessId(handle, out var id);
-        return id == Environment.ProcessId ? null : CompanionScreenCapture.Capture(handle);
+        return id == Environment.ProcessId ? null : CompanionScreenCapture.Capture(handle, maxDimension);
     }
 
     // Supplemental identity only; OCR screen content is the primary evidence in OCR mode.
@@ -125,10 +125,10 @@ internal static class CompanionNative
         var category = new StringBuilder(128);
         GetClassName(handle, category, category.Capacity);
         if (IsDesktopWindow(handle))
-            return "当前前台画面：Windows 桌面，壁纸与快捷方式图标。";
-        string name = "未知应用";
+            return "目前前臺畫面：Windows 桌面，桌布與捷徑圖示。";
+        string name = "未知應用";
         try { using var process = Process.GetProcessById((int)id); name = process.ProcessName; } catch { }
-        return "前台辅助信息（以屏幕文字为主要依据）：\n进程：" + name + "\n标题：" + title;
+        return "前臺輔助資訊（以螢幕文字為主要依據）：\n程式：" + name + "\n標題：" + title;
     }
 
     internal static bool IsDesktopWindow(IntPtr handle)
@@ -181,11 +181,11 @@ internal static class CompanionNative
     {
         var lines = new List<string>
         {
-            "前台应用：" + Limit(processName, 120),
-            "窗口标题：" + (Limit(title, 220) is { Length: > 0 } safeTitle ? safeTitle : "（没有窗口标题）"),
-            "窗口类别：" + (Limit(className, 120) is { Length: > 0 } safeClass ? safeClass : "（未知）"),
-            "无障碍名称：" + (Limit(accessibleName, 180) is { Length: > 0 } safeName ? safeName : "（没有提供）"),
-            "无障碍控件类型：" + (Limit(controlType, 120) is { Length: > 0 } safeType ? safeType : "（未知）")
+            "前臺應用：" + Limit(processName, 120),
+            "視窗標題：" + (Limit(title, 220) is { Length: > 0 } safeTitle ? safeTitle : "（沒有視窗標題）"),
+            "視窗類別：" + (Limit(className, 120) is { Length: > 0 } safeClass ? safeClass : "（未知）"),
+            "無障礙名稱：" + (Limit(accessibleName, 180) is { Length: > 0 } safeName ? safeName : "（沒有提供）"),
+            "無障礙控制元件型別：" + (Limit(controlType, 120) is { Length: > 0 } safeType ? safeType : "（未知）")
         };
         var clues = descendants
             .Select(x => Normalize(x, 120))
@@ -194,8 +194,8 @@ internal static class CompanionNative
             .Take(16)
             .ToArray();
         lines.Add(clues.Length == 0
-            ? "可见界面线索：没有读取到子控件名称。"
-            : "可见界面线索：\n" + string.Join("\n", clues.Select(x => "- " + x)));
+            ? "可見介面線索：沒有讀取到子控制元件名稱。"
+            : "可見介面線索：\n" + string.Join("\n", clues.Select(x => "- " + x)));
         return string.Join("\n", lines);
     }
 

@@ -58,7 +58,7 @@ internal static class Program
                 using var actual = new CompanionBrain(Process.Start, TimeSpan.FromSeconds(60), offlineClient, args[2])
                     { StopOnBattery = false, WeatherRegionCode = "350622" };
                 var text = await actual.GenerateWeather();
-                Check(text.Length > 0 && text.Contains("云霄"), "real model broadcasts selected district from persisted weather with offline HTTP transport");
+                Check(text.Length > 0 && text.Contains("雲霄"), "real model broadcasts selected district from persisted weather with offline HTTP transport");
                 Check(OfflineWeather.Calls == 0, "recent persisted weather reaches real model without HTTP fetch");
                 actual.Stop();
                 Check(actual.RunnerPid == null, "real weather verification unloads its own runner");
@@ -151,7 +151,7 @@ internal static class Program
 
             File.WriteAllText(modePath, "out-of-memory");
             await brain.WarmUp();
-            Check(brain.RunnerPid == null && brain.Status.Contains("内存或显存不足"), "warmup preserves startup memory failure reason and disposes failed runner");
+            Check(brain.RunnerPid == null && brain.Status.Contains("記憶體或顯示記憶體不足"), "warmup preserves startup memory failure reason and disposes failed runner");
             File.WriteAllText(modePath, "loading");
             await brain.WarmUp();
             Check(brain.RunnerPid == null && !brain.Busy && Exited(children[^1]), "warmup failure continues to clean up correctly");
@@ -168,28 +168,28 @@ internal static class Program
             brain.Stop(); Check(children.All(Exited), "CPU verification leaves no injected process alive");
             brain.UseGpu = true; File.WriteAllText(modePath, "gpu-fail"); await brain.WarmUp();
             Console.WriteLine("Fallback fixture state: pid=" + brain.RunnerPid + ", status=" + brain.Status + ", launch=" + string.Join(" ", launches[^1]));
-            Check(brain.RunnerPid != null && brain.Status.Contains("CPU兼容模式") && launches[^1][Array.IndexOf(launches[^1], "--device") + 1] == "none", "GPU initialization failure retries once on CPU and reports actual compatibility mode");
+            Check(brain.RunnerPid != null && brain.Status.Contains("CPU相容模式") && launches[^1][Array.IndexOf(launches[^1], "--device") + 1] == "none", "GPU initialization failure retries once on CPU and reports actual compatibility mode");
             int fallback = brain.RunnerPid!.Value;
-            Check((await brain.Generate(false, false)).Length > 0 && brain.RunnerPid == fallback && brain.Status.Contains("CPU兼容模式"), "healthy CPU compatibility runner is reused without repeated failing GPU launches");
+            Check((await brain.Generate(false, false)).Length > 0 && brain.RunnerPid == fallback && brain.Status.Contains("CPU相容模式"), "healthy CPU compatibility runner is reused without repeated failing GPU launches");
             brain.Stop(); Check(children.All(Exited), "GPU fallback verification leaves no child process alive");
             Check(CompanionBrain.GpuMicroBatch("Vulkan0: Arc (18409 MiB, 17000 MiB free)") == 2048, "high-memory GPU preserves verified microbatch");
             Check(CompanionBrain.GpuMicroBatch("Vulkan0: AMD (8886 MiB, 8441 MiB free)\nVulkan1: RTX3050 (3979 MiB, 3382 MiB free)") == 128, "smallest reported device budget protects mixed laptop GPUs");
             Check(CompanionBrain.GpuMicroBatch("Vulkan0: GPU (8192 MiB, 6000 MiB free)") == 512, "medium free-memory budget uses intermediate compute buffer");
 
-            var content = "前台应用：Code\n窗口正文：蓝色大肥鱼项目，正在修改 CompanionBrain.cs";
+            var content = "前臺應用：Code\n視窗正文：藍色大肥魚專案，正在修改 CompanionBrain.cs";
             var request = CompanionBrain.SpeechRequest(content);
-            Check(request.Contains(content) && request.Contains("屏幕资料结束"), "SpeechRequest preserves current screen content as delimited data");
-            var ocr = CompanionBrain.OcrSpeechRequest("我：明天中午一起吃火锅，十二点见。");
-            Check(ocr.Contains("明天中午一起吃火锅") && !ocr.Contains("你是"), "OCR user message preserves chat topic without persona instructions");
+            Check(request.Contains(content) && request.Contains("螢幕資料結束"), "SpeechRequest preserves current screen content as delimited data");
+            var ocr = CompanionBrain.OcrSpeechRequest("我：明天中午一起吃火鍋，十二點見。");
+            Check(ocr.Contains("明天中午一起吃火鍋") && !ocr.Contains("你是"), "OCR user message preserves chat topic without persona instructions");
             var messages = CompanionBrain.BuildMessages(CompanionBrain.OcrPersona, ocr);
             Check(((string)messages[0].content).StartsWith(CompanionBrain.FixedSpeechInstructions(CompanionBrain.OcrPersona), StringComparison.Ordinal),
                 "fixed production instructions precede variable reaction and screen data");
             Check(messages.Length == 2 && messages[0].role == "system" && messages[1].role == "user", "production messages preserve standard system/user roles");
-            Check(((string)messages[0].content).Contains("聊天正文") && ((string)messages[0].content).Contains("这一回可以") && (string)messages[1].content == ocr,
+            Check(((string)messages[0].content).Contains("聊天正文") && ((string)messages[0].content).Contains("這一回可以") && (string)messages[1].content == ocr,
                 "observer guidance and random voice are system instructions while user content is screen data");
             Check(CompanionBrain.BuildMessages(CompanionBrain.Persona, request, new CompanionWindowImage("data:image/jpeg;base64,AA==", 1, 1))[1].content is object[] { Length: 2 },
                 "vision content keeps image and screen text in the user role");
-            Check(CompanionBrain.Persona.Contains("当前活动") && CompanionBrain.Persona.Contains("桌面、新标签页、主页"), "Persona matches current content and entry-screen behavior");
+            Check(CompanionBrain.Persona.Contains("目前活動") && CompanionBrain.Persona.Contains("桌面、新標籤頁、主頁"), "Persona matches current content and entry-screen behavior");
             Console.WriteLine($"RESULT {checks} runner/prompt checks passed ({CompanionBrain.InputMode}); child responses are fault fixtures, not real model evaluation");
             return 0;
         }
@@ -217,7 +217,7 @@ internal static class Program
             string response = failed ? "{\"error\":\"loading failure fixture\"}" : health ? "{\"status\":\"ok\"}"
                 : template ? "{\"prompt\":\"fixture template without production prefix\"}"
                 : prefill ? "{\"content\":\"\"}"
-                : "data: {\"choices\":[{\"delta\":{\"content\":\"主人，小女仆来给你加油啦～\"}}]}\n\ndata: [DONE]\n\n";
+                : "data: {\"choices\":[{\"delta\":{\"content\":\"主人，小女僕來給你加油啦～\"}}]}\n\ndata: [DONE]\n\n";
             var bytes = Encoding.UTF8.GetBytes(response);
             context.Response.ContentType = health || failed || template || prefill ? "application/json" : "text/event-stream";
             await context.Response.OutputStream.WriteAsync(bytes);

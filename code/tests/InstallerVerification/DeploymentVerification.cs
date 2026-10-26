@@ -64,7 +64,7 @@ internal static partial class DeploymentVerification
         File.Delete(download);
         try { await ArtifactDownload.Download("http://fixture/model", download, new string('0', 64), client: ignoresRange); throw new Exception("hash mismatch accepted"); }
         catch (InvalidDataException) { Check(!File.Exists(download), "failed verified download never replaces installed destination"); }
-        string release = JsonSerializer.Serialize(new { draft = false, prerelease = false, tag_name = "v0.5.1", body = "测试更新", assets = new[] { new { name = "BigBlueFish-v0.5.1-OCR-Setup.exe", browser_download_url = "http://fixture/installer", digest = "sha256:" + hash } } });
+        string release = JsonSerializer.Serialize(new { draft = false, prerelease = false, tag_name = "v0.5.1", body = "測試更新", assets = new[] { new { name = "BigBlueFish-v0.5.1-OCR-Setup.exe", browser_download_url = "http://fixture/installer", digest = "sha256:" + hash } } });
         using var updates = new HttpClient(new Transport(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(release) }));
         Check((await UpdateService.Check("0.5.0", client: updates))?.Sha256 == hash, "public release metadata selects matching OCR installer and SHA256");
         Check(await UpdateService.Check("0.5.1", client: updates) == null && await UpdateService.Check("0.5.2", client: updates) == null, "update check never offers equal version or downgrade");
@@ -144,10 +144,10 @@ internal static partial class DeploymentVerification
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
             timer.Tick += (_, _) =>
             {
-                var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "模型下载未完成");
+                var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "模型下載未完成");
                 if (dialog == null) return;
                 var buttons = ((ModernWindow)dialog).Actions.Children.OfType<Button>().ToArray();
-                Check(buttons.Select(b => b.Content).SequenceEqual(new[] { "重试", "手动安装模型", "无模型启动" }), "download failure offers exactly three functional exits");
+                Check(buttons.Select(b => b.Content).SequenceEqual(new[] { "重試", "手動安裝模型", "無模型啟動" }), "download failure offers exactly three functional exits");
                 selected = true; timer.Stop(); buttons[choice].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             };
             timer.Start();
@@ -174,7 +174,7 @@ internal static partial class DeploymentVerification
         {
             var dialog = System.Windows.Application.Current.Windows.Cast<Window>().FirstOrDefault(w => w.Title == "使用此模型？");
             if (dialog == null) return;
-            Check(Children<System.Windows.Controls.TextBlock>(dialog).Any(t => t.Text == "这不是本软件期待的模型，您可以尝试使用，但稳定性无法保证"), "manual unknown hash uses approved non-blocking warning");
+            Check(Children<System.Windows.Controls.TextBlock>(dialog).Any(t => t.Text == "這不是本軟體期待的模型，您可以嘗試使用，但穩定性無法保證"), "manual unknown hash uses approved non-blocking warning");
             consent = true; consentTimer.Stop();
             ((ModernWindow)dialog).Actions.Children.OfType<Button>().First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         };
