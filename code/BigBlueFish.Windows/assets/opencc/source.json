@@ -1,0 +1,21 @@
+{
+  "project": "OpenCC (Open Chinese Convert)",
+  "repository": "https://github.com/BYVoid/OpenCC",
+  "tag": "ver.1.4.2",
+  "commit": "025f371dc76b598d77384fbdab90c937471844d8",
+  "license": "Apache-2.0",
+  "licenseFile": "code/licenses/OpenCC-Apache-2.0.txt",
+  "unmodified": {
+    "STCharacters.txt": "a0ca1601c70648cf48b33c3c6210ccbecc5c7eead4b4c3daf76587ba2c03582b",
+    "STPhrases.txt": "f6eab5e5c6dd7640597878d3dfc6599ee1279d2bc91561eadd8e114194e2925a",
+    "TSCharacters.txt": "737c21c66f55a419dd6956cb3089476cdefc5a36877452631617696df1e5d925",
+    "TWPhrases.txt": "bcb435b744ee3e522beb9b18fcc5486a36ed4763c6aa642ce18112fb5d604e31",
+    "TWVariants.txt": "e187278e119c427ca561180ac5da5b20e9f8681190458f35c327ce499e95a6a5",
+    "TWVariantsPhrases.txt": "36df033675a2e9152927fa8419f0732a061cb4909c5060f25a5cfc9b08ffff06"
+  },
+  "unmodifiedSource": "data/dictionary/<file> at the tag above",
+  "generated": {
+    "STPhrases_GeneratedFromRegionalPhrases.txt": "f37eb634c4b4b5c005c5c1cb57b5ccefe7c698d322f555b528826492968c9610"
+  },
+  "generatedNote": "Built by OpenCC ver.1.4.2 from HKPhrases.txt and TWPhrases.txt, exported from the opencc 1.4.2 Python wheel with opencc_dict -f ocd2 -t text; header comment lines added by acer1204 on 2026-10-26."
+}

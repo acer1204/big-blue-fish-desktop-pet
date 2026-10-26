@@ -168,6 +168,7 @@ public partial class MainWindow
         Panel.SetZIndex(loadingIndicator, 20);
         companionLayout.Children.Add(loadingIndicator);
         speech = new CompanionSpeech(bubbleText, bubble, () => CompanionEdgeLayout.Refresh(this), ResetBubbleDeadline);
+        CompanionTraditional.Warm();
         Content = companionLayout;
         ApplyCompanionScale(false);
         var a = SystemParameters.WorkArea;
@@ -421,11 +422,11 @@ public partial class MainWindow
         speech.Show(text, true);
     }
 
-    private void ShowCompanionPartial(string text, long? expectedVersion = null)
+    private void ShowCompanionPartial(string text, long? expectedVersion = null, bool final = false)
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(() => ShowCompanionPartial(text, expectedVersion));
+            Dispatcher.Invoke(() => ShowCompanionPartial(text, expectedVersion, final));
             return;
         }
         if (companionClosed || exitAnimation || PuppetActive || text.Length == 0 || expectedVersion.HasValue && expectedVersion != speechRequestVersion)
@@ -433,12 +434,12 @@ public partial class MainWindow
         externalBubble = false;
         bubbleIsModelReply = true;
         bubbleUntil = DateTime.MaxValue;
-        speech.ShowPartial(text);
+        speech.ShowPartial(text, final);
     }
 
     private void FinishCompanionPartial(string text)
     {
-        ShowCompanionPartial(text);
+        ShowCompanionPartial(text, final: true);
         ResetBubbleDeadline();
     }
 
@@ -619,6 +620,11 @@ public partial class MainWindow
             return;
         if (bubble.Visibility == Visibility.Visible && now > bubbleUntil)
             bubble.Visibility = Visibility.Collapsed;
+        // An agent's bubble (MCP say), such as a progress report, is not talked over by the fish's own speech.
+        // A bubble kept until the next sentence (no deadline) gives way once the agent stops refreshing it.
+        if (externalBubble && bubble.Visibility == Visibility.Visible
+            && (speech.IsTyping || bubbleUntil != DateTime.MaxValue || now - externalBubbleAt < ExternalBubbleHold))
+            return;
         if (PuppetActive || now < nextSpeech || companionSettings != null || modelInstaller != null
             || !HasScheduledMcpSpeech && (speechRequestPending || brain.Busy || weatherRequestPending || !preferences.ModelEnabled || !brain.ModelAvailable || !brain.CanRunOnCurrentPower))
             return;

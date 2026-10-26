@@ -1,10 +1,13 @@
-﻿param([string]$SdkPath,[string]$InstalledDirectory='C:\Program Files\蓝色大肥鱼',[ValidateSet('Ocr','Vision')][string]$InputMode='Ocr')
+﻿# Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
+param([string]$SdkPath,[string]$InstalledDirectory='C:\Program Files\蓝色大肥鱼',[ValidateSet('Ocr','Vision')][string]$InputMode='Ocr')
 $ErrorActionPreference='Stop'
 Push-Location $PSScriptRoot
 try {
     & "$PSScriptRoot/tests/PowerShellEncodingVerification.ps1"
     if(Get-CimInstance Win32_Process -Filter "Name='BigBlueFish.exe' OR Name='VPet-Simulator.Windows.exe'"){throw '请先从托盘菜单退出桌宠，再执行实窗测试。'}
     $sdk=& "$PSScriptRoot/tools/Resolve-Sdk.ps1" -SdkPath $SdkPath
+    & $sdk run --project "$PSScriptRoot/tests/TraditionalTextVerification/TraditionalTextVerification.csproj" -c Release
+    if($LASTEXITCODE -ne 0){throw '氣泡繁體轉換驗證失敗'}
     $sandbox=Join-Path $PSScriptRoot '.verification'
     New-Item -ItemType Directory -Force -Path $sandbox | Out-Null
     foreach($name in @('assets','runtime','models')){

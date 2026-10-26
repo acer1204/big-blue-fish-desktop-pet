@@ -10,6 +10,10 @@ internal sealed class Bridge(BridgeOptions options)
     private const string ThinkingAction = "深度思考碎碎念";
     private const int SayLimit = 4000;
     private static readonly TimeSpan ReconnectWait = TimeSpan.FromMinutes(2);
+    // Mirrors CompanionPreferences.BubbleDurations in the pet (seconds a finished bubble stays; 0 = until closed).
+    private static readonly int[] BubbleSeconds = [5, 10, 15, 30, 60, 120, 180, 0];
+    private static readonly TimeSpan MinimumShow = TimeSpan.FromSeconds(1.5);
+    private volatile string activity = "";
     private readonly Channel<string> inbox = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
     private volatile PetLink? pet;
     private bool reconnects;
@@ -102,13 +106,18 @@ internal sealed class Bridge(BridgeOptions options)
             await DeliverAsync(fresh, token);
             return fresh;
         }
-        await SayAsync("嗯……讓魚魚想一想～", token);
+        activity = "收到～讓魚魚想一想";
         using var thinking = CancellationTokenSource.CreateLinkedTokenSource(token);
-        var animation = ThinkAsync(thinking.Token);
+        var animation = Task.WhenAll(ThinkAsync(thinking.Token), ShowProgressAsync(DateTime.UtcNow, thinking.Token));
         string reply;
         try
         {
-            reply = await hermes.AskAsync(text, token);
+            reply = await hermes.AskAsync(text, now =>
+            {
+                if (now == activity) return;
+                activity = now;
+                Log.Write("進度：" + now);
+            }, token);
             if (reply.Length == 0) reply = "（Hermes 這次沒有回答內容）";
         }
         catch (HermesException error) { reply = "主人，Hermes 出了點狀況：" + error.Message; }
@@ -167,6 +176,80 @@ internal sealed class Bridge(BridgeOptions options)
             Log.Write("看不懂魚魚目前的狀態，這次先停止思考動作：" + error.Message);
         }
     }
+
+    // Keeps a progress bubble up while Hermes works: what it is doing and for how long. A finished
+    // bubble hides after the user's chosen duration, so the text is said again before that happens.
+    // The first line answers the user at once; later ones give way while the pet shows something the
+    // user asked it for (weather, a speech test), and a bubble the user closed stays closed until
+    // Hermes moves on to something new.
+    private async Task ShowProgressAsync(DateTime started, CancellationToken token)
+    {
+        try
+        {
+            var refresh = await RefreshIntervalAsync(token);
+            string shown = "";
+            DateTime said = DateTime.MinValue, quietUntil = DateTime.MinValue;
+            while (true)
+            {
+                string now = activity;
+                var since = DateTime.UtcNow - said;
+                bool news = now != shown;
+                if (DateTime.UtcNow >= quietUntil && (news && since >= MinimumShow || since >= refresh))
+                {
+                    var bubble = said == DateTime.MinValue ? Bubble.Free : await BubbleAsync(token);
+                    if (bubble == Bubble.PetBusy || bubble == Bubble.Closed && !news)
+                        quietUntil = DateTime.UtcNow.AddSeconds(2);
+                    else
+                    {
+                        var elapsed = DateTime.UtcNow - started;
+                        string text = Ellipsis(now) + (elapsed < TimeSpan.FromSeconds(5) ? "" : $"（{ToolStatus.Elapsed(elapsed)}）");
+                        await SayAsync(text, token);
+                        shown = now;
+                        said = DateTime.UtcNow;
+                    }
+                }
+                await Task.Delay(TimeSpan.FromMilliseconds(500), token);
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    }
+
+    private enum Bubble { Free, PetBusy, Closed }
+
+    // From the pet's get_settings state; an older pet without these fields always reads as Free.
+    private async Task<Bubble> BubbleAsync(CancellationToken token)
+    {
+        if (pet is not { } link || await CallAsync(link, "get_settings", new { }, token) is not { } json) return Bubble.Free;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var state = document.RootElement.GetProperty("state");
+            bool? Flag(string name) => state.TryGetProperty(name, out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False ? value.GetBoolean() : null;
+            bool? visible = Flag("bubbleVisible"), external = Flag("externalBubble");
+            if (Flag("speechPending") == true || visible == true && external == false) return Bubble.PetBusy;
+            return visible == false && external == true ? Bubble.Closed : Bubble.Free;
+        }
+        catch (Exception error) when (error is JsonException or KeyNotFoundException or InvalidOperationException) { return Bubble.Free; }
+    }
+
+    private async Task<TimeSpan> RefreshIntervalAsync(CancellationToken token)
+    {
+        int seconds = 5;
+        if (pet is { } link && await CallAsync(link, "get_settings", new { }, token) is { } json)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                int index = document.RootElement.GetProperty("settings").GetProperty("BubbleDurationIndex").GetInt32();
+                if (index >= 0 && index < BubbleSeconds.Length) seconds = BubbleSeconds[index];
+            }
+            catch (Exception error) when (error is JsonException or KeyNotFoundException or InvalidOperationException or FormatException) { }
+        }
+        return TimeSpan.FromSeconds(seconds == 0 ? 15 : Math.Clamp(seconds - 2, 3, 15));
+    }
+
+    private static string Ellipsis(string text) =>
+        text.Length > 0 && "。！？…～~!?.）)」』".Contains(text[^1]) ? text : text + "…";
 
     // The final answer is worth waiting for: if the pet is gone (restarting, MCP switched off and
     // on), hold it until the link comes back and try once more.

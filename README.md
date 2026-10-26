@@ -7,7 +7,7 @@
 
 ## 台灣版修改說明
 
-依 [Apache License 2.0](LICENSE) 第 4 條第 (b) 款，本節列出這個分支新增、刪除或修改的檔案，以及修改者與修改日期。修改過的程式碼與專案檔（.cs、.xaml、.csproj、.ps1，共 56 個）第一行都加註了修改聲明；`README.md` 與建置安裝檔時會一併打包的 [`code/THIRD-PARTY.md`](code/THIRD-PARTY.md) 則在開頭段落註明這是修改版。原作者的著作權聲明（Copyright 2026 Bai-Cute）與授權條款維持不變，本分支的修改同樣以 Apache-2.0 授權釋出。本分支並非由原作者維護，修改內容也未經原作者審閱或背書；使用時遇到問題，請到本分支的儲存庫 [acer1204/big-blue-fish-desktop-pet](https://github.com/acer1204/big-blue-fish-desktop-pet/issues) 回報，不要回報給原作者。
+依 [Apache License 2.0](LICENSE) 第 4 條第 (b) 款，本節列出這個分支新增、刪除或修改的檔案，以及修改者與修改日期。修改過的程式碼、專案檔與設定檔（.cs、.xaml、.csproj、.ps1、.gitattributes，共 59 個）第一行都加註了修改聲明；`README.md` 與建置安裝檔時會一併打包的 [`code/THIRD-PARTY.md`](code/THIRD-PARTY.md) 則在開頭段落註明這是修改版。原作者的著作權聲明（Copyright 2026 Bai-Cute）與授權條款維持不變，本分支的修改同樣以 Apache-2.0 授權釋出。本分支並非由原作者維護，修改內容也未經原作者審閱或背書；使用時遇到問題，請到本分支的儲存庫 [acer1204/big-blue-fish-desktop-pet](https://github.com/acer1204/big-blue-fish-desktop-pet/issues) 回報，不要回報給原作者。
 
 ### 主要變更
 
@@ -18,7 +18,8 @@
 - **台灣天氣**：Windows 版的天氣地點改為「縣市 → 鄉鎮市區」兩層選單（22 個縣市、368 個鄉鎮市區），新安裝的預設地點為臺北市中正區。天氣資料改用[中央氣象署開放資料](https://opendata.cwa.gov.tw/)的鄉鎮天氣預報，需要自行申請並在設定中填入授權碼；填入之前，台灣地點（包括預設的臺北市中正區）不會有天氣資料，也不會改用 Open-Meteo。原本的 Open-Meteo 天氣仍保留給非台灣地點（先前儲存或透過 MCP 設定的）與 Linux 版使用。Linux 版沒有授權碼欄位，所以不會出現本分支新增的氣象署縣市清單，MCP 也不能把 Linux 版設成台灣鄉鎮；原有地區資料中的「台湾省」仍會出現，但和原版一樣沒有座標，選了也不會有天氣資料。
 - **金鑰保護**：遠端 API Key 與氣象署授權碼以目前的 Windows 帳戶加密（DPAPI）後儲存，而且不會出現在 MCP 的 `get_settings` 結果中。這可以防止設定檔被複製到其他帳戶或電腦後讀出金鑰，但同一個 Windows 帳戶下執行的其他程式仍然可以解密。
 - **測試同步**：`code/tests/` 中比對介面文字的測試程式也隨之改為繁體中文。
-- **Hermes 對話橋接**：新增 `code/BigBlueFish.HermesBridge`（C#）與 `code/run-hermes-bridge.ps1`。雙擊魚魚在輸入框打的字，會交給本機的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) API 回答，回答再顯示在魚魚的氣泡裡；等待時魚魚會播放思考動作。同一段對話會延續上下文，連重新啟動橋接程式後也接得上；在輸入框打 `/new` 會開始新的對話，但 Hermes 寫進長期記憶的內容（例如被要求「記住」的事）不會因此清掉。
+- **氣泡不出現簡體字**：Windows 版魚魚的氣泡文字（自己的模型、天氣、MCP 的 `say`／`say_next`、Hermes 橋接）在顯示前都會經過新增的 `CompanionTraditional`，用 [OpenCC](https://github.com/BYVoid/OpenCC) 1.4.2 的字典把簡體字轉成台灣繁體。整段都是簡體時，結果和 OpenCC 的 `s2twp` 相同（包括軟件→軟體這類台灣用語），另外修正了 OpenCC 會轉錯的「一起干杯」（幹杯）與「的士兵、的士林」（計程車）；繁體句子裡夾雜的簡體字只改那幾個字，原本就是繁體或英文的內容維持不變。模型邊產生邊顯示時，需要轉換的句子會等最後一段文字完整再顯示，避免轉到一半的字一閃而過。已知的取捨：為了修正常見的「以后、然后」，罕見用法「選后」也會變成「選後」。MCP 工具回傳給 Agent 的仍是原文。新增的 `code/tests/TraditionalTextVerification` 以 8591 筆語料驗證轉換結果。
+- **Hermes 對話橋接**：新增 `code/BigBlueFish.HermesBridge`（C#）與 `code/run-hermes-bridge.ps1`。雙擊魚魚在輸入框打的字，會交給本機的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) API 回答，回答再顯示在魚魚的氣泡裡。等待時魚魚會播放思考動作，氣泡也會即時顯示 Hermes 正在做什麼（例如「正在上網搜尋：…」「正在電腦上執行指令…」）和已經過的時間；外部 Agent 的氣泡還在顯示時，魚魚不會自己開口把它蓋掉。同一段對話會延續上下文，連重新啟動橋接程式後也接得上；在輸入框打 `/new` 會開始新的對話，但 Hermes 寫進長期記憶的內容（例如被要求「記住」的事）不會因此清掉。
 
 ### 使用 Hermes 對話橋接
 
@@ -33,13 +34,14 @@
 
 - 新增 jf open 粉圓 2.1 字型（未修改）：著作權屬 justfont Co., LTD.，以 SIL Open Font License 1.1 授權；字型內含 Varela Round（SIL OFL 1.1）的拉丁字母，漢字部分衍生自 Kosugi Maru（Apache-2.0）。字型授權全文在 `code/licenses/jf-open-huninn-OFL.txt`，Apache-2.0 全文在 `code/licenses/Apache-2.0.txt`。
 - 移除「乐米小奶泡体」字型及其授權說明，本分支不再散布該字型。
+- 新增 OpenCC 1.4.2 字典（Apache-2.0，著作權屬 Carbo Kuo（BYVoid）與 OpenCC 貢獻者），放在 `code/BigBlueFish.Windows/assets/opencc/` 並嵌入程式：`STCharacters`、`STPhrases`、`TSCharacters`、`TWPhrases`、`TWVariants`、`TWVariantsPhrases` 與官方 `ver.1.4.2` 的原檔完全相同；`STPhrases_GeneratedFromRegionalPhrases.txt` 是 OpenCC 建置時產生的檔案，取自官方 Python 套件並加上註明來源的檔頭。授權全文在 `code/licenses/OpenCC-Apache-2.0.txt`，來源與 SHA-256 雜湊值記錄在同資料夾的 `source.json`。
 - 台灣天氣資料只在執行時向中央氣象署查詢，不隨程式附帶天氣資料。顯名聲明：中央氣象署 2026 鄉鎮天氣預報（F-D0047）。此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。政府資料開放授權條款：https://data.gov.tw/license 。中央氣象署並未推薦或背書本程式。
 - 台灣縣市與鄉鎮市區清單由新增的 `code/tools/import-taiwan-regions.py` 產生：從原有的 AreaCity 地區資料（MIT）取出台灣部分，以 OpenCC 轉換為繁體中文；金門縣與連江縣的鄉鎮因為 AreaCity 歸在福建省之下，直接寫在腳本中。
 - 版本、SHA-256 雜湊值與授權的詳細資訊已更新於[第三方聲明](code/THIRD-PARTY.md)（英文）。
 
 ### 尚未修改的部分
 
-- 安裝程式與解除安裝程式（`installer/`、`uninstaller/`）自己的文字，以及 Linux 版的設定、選單等介面仍為簡體中文；但它們共用的視窗框架、模型下載視窗、模型狀態與錯誤訊息，以及魚魚的回覆已改為繁體，所以畫面會繁簡混雜。Linux 版的氣泡字型也已改為 jf open 粉圓，對話框字型改為 Noto Sans CJK TC。Linux 版可以編譯，但沒有實際執行驗證。
+- 安裝程式與解除安裝程式（`installer/`、`uninstaller/`）自己的文字，以及 Linux 版的設定、選單等介面仍為簡體中文；但它們共用的視窗框架、模型下載視窗、模型狀態與錯誤訊息，以及魚魚的回覆已改為繁體，所以畫面會繁簡混雜。Linux 版的氣泡字型也已改為 jf open 粉圓，對話框字型改為 Noto Sans CJK TC。Linux 版的氣泡沒有加上簡體轉繁體，也不會在外部 Agent 說話時暫停自己說話。Linux 版可以編譯，但沒有實際執行驗證。
 - 執行檔的產品名稱與檔案描述（工作管理員中顯示的名稱）、MCP 橋接程式 `BigBlueFish.Mcp` 的連線錯誤訊息，以及 `tools/` 底下建置與模型準備腳本的訊息仍為簡體中文（`Model-Helpers.ps1` 的模型來源名稱與錯誤訊息已改為繁體）。
 - 安裝後在 Windows「已安裝的應用程式」顯示的發行者與網址、Linux 套件的維護者與首頁，以及「檢查更新」的來源，目前仍指向原作者 Bai-Cute 及其儲存庫。在這些資訊改為指向本分支之前，本分支不提供編譯好的安裝檔，以免被誤認為原作者發行，或被「檢查更新」換回原版。
 - 本 README 分隔線以下的原作者說明、`docs/` 規格文件、`CHANGELOG.md`，以及建置安裝檔時附帶的 `release/README.md`（安裝說明）仍是原作者的內容，描述的是原版行為；其中「开源许可与第三方权利信息」一節仍列出原版的「乐米小奶泡体」字型，本分支實際附帶的字型與資料來源，請以上方「新增或移除的第三方內容」與 `code/THIRD-PARTY.md` 為準。
@@ -47,23 +49,49 @@
 
 ### 修改過的檔案
 
-以下 71 個檔案由 acer1204 於 2026 年 10 月 26 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
+以下 100 個檔案由 acer1204 於 2026 年 10 月 26 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
 
 <details>
 <summary>展開檔案清單</summary>
 
-**新增（11）**
+**新增（37）**
 
 - `code/BigBlueFish.HermesBridge/BigBlueFish.HermesBridge.csproj`
 - `code/BigBlueFish.HermesBridge/Bridge.cs`
 - `code/BigBlueFish.HermesBridge/HermesChat.cs`
 - `code/BigBlueFish.HermesBridge/PetLink.cs`
 - `code/BigBlueFish.HermesBridge/Program.cs`
+- `code/BigBlueFish.HermesBridge/ToolStatus.cs`
 - `code/BigBlueFish.HermesBridge/packages.lock.json`
+- `code/BigBlueFish.Windows/Companion/CompanionTraditional.cs`
 - `code/BigBlueFish.Windows/Res/Font/jf-openhuninn-2.1.ttf`
+- `code/BigBlueFish.Windows/assets/opencc/STCharacters.txt`
+- `code/BigBlueFish.Windows/assets/opencc/STPhrases.txt`
+- `code/BigBlueFish.Windows/assets/opencc/STPhrases_GeneratedFromRegionalPhrases.txt`
+- `code/BigBlueFish.Windows/assets/opencc/TSCharacters.txt`
+- `code/BigBlueFish.Windows/assets/opencc/TWPhrases.txt`
+- `code/BigBlueFish.Windows/assets/opencc/TWVariants.txt`
+- `code/BigBlueFish.Windows/assets/opencc/TWVariantsPhrases.txt`
+- `code/BigBlueFish.Windows/assets/opencc/source.json`
 - `code/BigBlueFish.Windows/assets/regions/taiwan-regions.json`
+- `code/licenses/OpenCC-Apache-2.0.txt`
 - `code/licenses/jf-open-huninn-OFL.txt`
 - `code/run-hermes-bridge.ps1`
+- `code/tests/TraditionalTextVerification/Program.cs`
+- `code/tests/TraditionalTextVerification/TraditionalTextVerification.csproj`
+- `code/tests/TraditionalTextVerification/corpora/mixed_cases.expected.txt`
+- `code/tests/TraditionalTextVerification/corpora/mixed_cases.txt`
+- `code/tests/TraditionalTextVerification/corpora/simplified_upstream.expected.txt`
+- `code/tests/TraditionalTextVerification/corpora/simplified_upstream.txt`
+- `code/tests/TraditionalTextVerification/corpora/traditional_app.expected.txt`
+- `code/tests/TraditionalTextVerification/corpora/traditional_app.txt`
+- `code/tests/TraditionalTextVerification/corpora/traditional_stress.expected.txt`
+- `code/tests/TraditionalTextVerification/corpora/traditional_stress.txt`
+- `code/tests/TraditionalTextVerification/corpora/tw_regions_mixed.expected.txt`
+- `code/tests/TraditionalTextVerification/corpora/tw_regions_mixed.txt`
+- `code/tests/TraditionalTextVerification/corpora/tw_regions_traditional.expected.txt`
+- `code/tests/TraditionalTextVerification/corpora/tw_regions_traditional.txt`
+- `code/tests/TraditionalTextVerification/packages.lock.json`
 - `code/tools/import-taiwan-regions.py`
 
 **刪除（2）**
@@ -71,8 +99,9 @@
 - `code/BigBlueFish.Windows/Res/Font/LemiXiaoNaiPaoTi.ttf`
 - `code/licenses/Lemi-Xiao-Nai-PaoTi.txt`
 
-**修改（58）**
+**修改（61）**
 
+- `.gitattributes`
 - `README.md`
 - `code/BigBlueFish.Control/ControlServer.cs`
 - `code/BigBlueFish.Control/ControlTools.cs`
@@ -99,6 +128,7 @@
 - `code/BigBlueFish.Windows/Companion/CompanionRegions.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionScreenCapture.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionSettings.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionSpeech.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionTrayIcon.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionTrayMenuRenderer.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionVideoPlayer.cs`
@@ -106,6 +136,7 @@
 - `code/BigBlueFish.Windows/Companion/CompanionWindow.cs`
 - `code/BigBlueFish.Windows/MainWindow.xaml`
 - `code/THIRD-PARTY.md`
+- `code/test.ps1`
 - `code/tests/AnimationUiVerification/Program.cs`
 - `code/tests/ForegroundVerification/Program.cs`
 - `code/tests/InstallerVerification/DeploymentVerification.cs`

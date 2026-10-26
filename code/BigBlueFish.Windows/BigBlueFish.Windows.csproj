@@ -34,6 +34,7 @@
     <Content Include="media/FFmpeg-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="assets/regions/china-regions.json" />
     <EmbeddedResource Include="assets/regions/taiwan-regions.json" />
+    <EmbeddedResource Include="assets/opencc/*.txt" LogicalName="BigBlueFish.Windows.assets.opencc.%(Filename)%(Extension)" />
   </ItemGroup>
   <Target Name="EnsureAnimationDecoder" BeforeTargets="PrepareForBuild" Condition="!Exists('$(MSBuildProjectDirectory)/media/ffmpeg.exe')">
     <Exec Command="powershell.exe -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)/../../tools/Setup-Media.ps1&quot;" />

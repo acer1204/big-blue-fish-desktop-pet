@@ -19,6 +19,10 @@ namespace BigBlueFish.Windows;
 public partial class MainWindow
 {
     private bool externalBubble { get; set; }
+    // When an agent last said something; it holds off the fish's own speech while it keeps saying more
+    // (the Hermes bridge refreshes its progress bubble at least every 15 seconds).
+    private DateTime externalBubbleAt { get; set; }
+    private static readonly TimeSpan ExternalBubbleHold = TimeSpan.FromSeconds(20);
 #if COMPANION_SAFE
     private bool PuppetActive => false;
     private bool HasScheduledMcpSpeech => false;
@@ -86,6 +90,7 @@ public partial class MainWindow
     {
         speechRequestVersion++; brain.CancelGeneration(); EndModelSpeech(); EndGreetingNotice();
         externalBubble = true;
+        externalBubbleAt = DateTime.UtcNow;
         bubbleIsModelReply = false;
         bubbleUntil = DateTime.MaxValue;
         speech.Show(text, true);
@@ -111,6 +116,7 @@ public partial class MainWindow
                     return ControlTools.Text(new { settings = CurrentMcpSettings(), state = new {
                         visible = IsVisible, hiddenByUser, fullscreenHidden, action = currentAction, animationPhase,
                         queuedActions = mcpActions.ToArray(), queuedSpeech = mcpNextSpeech, connections = mcpServer?.Connections ?? 0, inputOpen = mcpInput?.IsVisible == true, inputAvailable = McpInputAvailable,
+                        bubbleVisible = bubble.Visibility == Visibility.Visible, externalBubble, speechPending = speechRequestPending || weatherRequestPending,
                         modelAvailable = brain.ModelAvailable, modelBusy = brain.Busy, modelStatus = brain.Status } });
                 case "update_settings":
                     await UpdateMcpSettings(args, token); return ControlTools.Text(new { settings = CurrentMcpSettings() });

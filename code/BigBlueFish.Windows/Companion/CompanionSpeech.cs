@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -8,6 +9,7 @@ using System.Windows.Threading;
 namespace BigBlueFish.Windows;
 
 // All model replies use this display path. Measure the whole reply before revealing it.
+// Every bubble text passes CompanionTraditional first, so Simplified characters never reach the screen.
 internal sealed class CompanionSpeech(TextBlock text, Border bubble, Action refresh, Action completed) : IDisposable
 {
     internal const double CharactersPerSecond = 28;
@@ -21,6 +23,7 @@ internal sealed class CompanionSpeech(TextBlock text, Border bubble, Action refr
 
     internal void Show(string message, bool animate)
     {
+        message = CompanionTraditional.Convert(message);
         Cancel();
         if (!subscribed) { timer.Tick += Tick; subscribed = true; }
         FullText = message;
@@ -33,8 +36,11 @@ internal sealed class CompanionSpeech(TextBlock text, Border bubble, Action refr
         else completed();
     }
 
-    internal void ShowPartial(string message)
+    // A streamed snapshot (not final) that needs converting waits for its unfinished last run of Chinese.
+    internal void ShowPartial(string message, bool final = false)
     {
+        message = final ? CompanionTraditional.Convert(message) : CompanionTraditional.ConvertPartial(message);
+        if (message.Length == 0) return;
         Cancel();
         if (!subscribed) { timer.Tick += Tick; subscribed = true; }
         FullText = message;
