@@ -4,7 +4,8 @@ using System.Threading.Channels;
 namespace BigBlueFish.HermesBridge;
 
 // Keeps a link to the pet (reconnecting when the pet or its MCP switch restarts) and answers typed
-// messages one at a time, in order, so replies never overtake each other.
+// messages one at a time, in order, so replies never overtake each other. /stop is the exception:
+// it is handled the moment it arrives and interrupts the turn being answered.
 internal sealed class Bridge(BridgeOptions options)
 {
     private const string ThinkingAction = "深度思考碎碎念";
@@ -13,8 +14,13 @@ internal sealed class Bridge(BridgeOptions options)
     // Mirrors CompanionPreferences.BubbleDurations in the pet (seconds a finished bubble stays; 0 = until closed).
     private static readonly int[] BubbleSeconds = [5, 10, 15, 30, 60, 120, 180, 0];
     private static readonly TimeSpan MinimumShow = TimeSpan.FromSeconds(1.5);
-    private volatile string activity = "";
+    // What Hermes is doing and how many times in a row it started it; replaced whole, never mutated.
+    private sealed record Progress(string Text, int Repeat);
+    private volatile Progress progress = new("", 1);
+    // Typed text first reaches the dispatcher; everything but /stop then waits in inbox for the worker.
+    private readonly Channel<string> incoming = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Channel<string> inbox = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+    private volatile CancellationTokenSource? turn; // the Hermes turn being answered
     private volatile PetLink? pet;
     private bool reconnects;
 
@@ -27,14 +33,15 @@ internal sealed class Bridge(BridgeOptions options)
         if (await hermes.RiskyToolsetsAsync(token) is { Length: > 0 } risky)
             Log.Write($"注意：Hermes 目前開著 {string.Join("、", risky)} 工具組。任何能在魚魚輸入框打字的人，都能讓 Hermes 以你的身分執行指令、修改檔案；訊息也會送到 Hermes 設定的模型服務。");
         var worker = Task.Run(() => AnswerAsync(hermes, token), CancellationToken.None);
+        var dispatcher = Task.Run(() => DispatchAsync(hermes, token), CancellationToken.None);
         while (!token.IsCancellationRequested)
         {
             PetLink? link = null;
             try
             {
-                link = await PetLink.ConnectAsync(options.McpCommand, inbox.Writer, token);
+                link = await PetLink.ConnectAsync(options.McpCommand, incoming.Writer, token);
                 pet = link;
-                Log.Write("已連上魚魚。雙擊魚魚輸入訊息就會交給 Hermes；輸入 /new 開始新的對話。");
+                Log.Write("已連上魚魚。雙擊魚魚輸入訊息就會交給 Hermes；輸入 /new 開始新的對話，/stop 停止目前的工作。");
                 await link.Closed.WaitAsync(token);
                 Log.Write("和魚魚的連線中斷了（桌寵關閉，或 MCP 介面被關掉）。");
             }
@@ -52,10 +59,39 @@ internal sealed class Bridge(BridgeOptions options)
             try { await Task.Delay(TimeSpan.FromSeconds(5), token); }
             catch (OperationCanceledException) { }
         }
-        inbox.Writer.TryComplete();
+        incoming.Writer.TryComplete();
+        await dispatcher; // completes inbox on the way out
         await worker;
         Log.Write("橋接程式結束。");
         return 0;
+    }
+
+    // /stop cannot wait behind the turn it is meant to stop, so typed text is sorted here first.
+    private async Task DispatchAsync(HermesChat hermes, CancellationToken token)
+    {
+        try
+        {
+            await foreach (var typed in incoming.Reader.ReadAllAsync(token))
+            {
+                var text = typed.Trim();
+                if (text.Equals("/stop", StringComparison.OrdinalIgnoreCase) || text == "/停止")
+                {
+                    Log.Write("收到：" + text);
+                    if (turn is not { } running) { await SayAsync("目前沒有在做的事喔。", token); continue; }
+                    await SayAsync("好，正在請 Hermes 停下來…", token);
+                    // Hermes' own stop also ends the background processes of the turn; dropping the
+                    // stream afterwards makes sure the bridge itself moves on either way.
+                    if (!await hermes.StopAsync(token)) Log.Write("Hermes 沒有接受停止要求，改為直接中斷連線。");
+                    try { running.Cancel(); } catch (ObjectDisposedException) { }
+                    continue;
+                }
+                if (text.Length > 0 && turn != null)
+                    await SayAsync("收到，等目前這件事做完就處理；輸入 /stop 可以先停下來。", token);
+                await inbox.Writer.WriteAsync(typed, token);
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally { inbox.Writer.TryComplete(); }
     }
 
     // Test path: one message through the same steps, without listening for typed input.
@@ -106,26 +142,34 @@ internal sealed class Bridge(BridgeOptions options)
             await DeliverAsync(fresh, token);
             return fresh;
         }
-        activity = "收到～讓魚魚想一想";
+        progress = new Progress("收到～讓魚魚想一想", 1);
         using var thinking = CancellationTokenSource.CreateLinkedTokenSource(token);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
         var animation = Task.WhenAll(ThinkAsync(thinking.Token), ShowProgressAsync(DateTime.UtcNow, thinking.Token));
         string reply;
+        turn = stop;
         try
         {
-            reply = await hermes.AskAsync(text, now =>
+            reply = await hermes.AskAsync(text, (now, repeat) =>
             {
-                if (now == activity) return;
-                activity = now;
-                Log.Write("進度：" + now);
-            }, token);
+                var next = new Progress(now, repeat);
+                if (next == progress) return;
+                progress = next;
+                Log.Write("進度：" + now + (repeat > 1 ? $"（第 {repeat} 次）" : ""));
+            }, stop.Token);
             if (reply.Length == 0) reply = "（Hermes 這次沒有回答內容）";
         }
         catch (HermesException error) { reply = "主人，Hermes 出了點狀況：" + error.Message; }
         catch (HttpRequestException) { reply = "主人，魚魚連不上 Hermes，請確認 Hermes 有在執行喔。"; }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested && !token.IsCancellationRequested)
+        {
+            reply = "好，這件事先停下來了。需要的話再告訴魚魚一次要做什麼。";
+        }
         // HttpClient reports its own timeout as a cancellation the bridge did not ask for.
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { reply = "主人，Hermes 太久沒有回應，這次先放棄了。"; }
         finally
         {
+            turn = null;
             thinking.Cancel();
             try { await animation; }
             catch (Exception error) when (!token.IsCancellationRequested) { Log.Write("思考動作出錯：" + error.Message); }
@@ -187,11 +231,11 @@ internal sealed class Bridge(BridgeOptions options)
         try
         {
             var refresh = await RefreshIntervalAsync(token);
-            string shown = "";
+            Progress? shown = null;
             DateTime said = DateTime.MinValue, quietUntil = DateTime.MinValue;
             while (true)
             {
-                string now = activity;
+                var now = progress;
                 var since = DateTime.UtcNow - said;
                 bool news = now != shown;
                 if (DateTime.UtcNow >= quietUntil && (news && since >= MinimumShow || since >= refresh))
@@ -201,8 +245,12 @@ internal sealed class Bridge(BridgeOptions options)
                         quietUntil = DateTime.UtcNow.AddSeconds(2);
                     else
                     {
+                        // 正在電腦上執行指令…（第 12 次，3 分 05 秒）: a rising count shows a retry loop, not a hang.
                         var elapsed = DateTime.UtcNow - started;
-                        string text = Ellipsis(now) + (elapsed < TimeSpan.FromSeconds(5) ? "" : $"（{ToolStatus.Elapsed(elapsed)}）");
+                        var notes = new List<string>();
+                        if (now.Repeat > 1) notes.Add($"第 {now.Repeat} 次");
+                        if (elapsed >= TimeSpan.FromSeconds(5)) notes.Add(ToolStatus.Elapsed(elapsed));
+                        string text = Ellipsis(now.Text) + (notes.Count > 0 ? "（" + string.Join("，", notes) + "）" : "");
                         await SayAsync(text, token);
                         shown = now;
                         said = DateTime.UtcNow;

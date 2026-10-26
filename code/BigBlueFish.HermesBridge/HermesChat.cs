@@ -25,7 +25,10 @@ internal sealed partial class HermesChat : IDisposable
         // Hermes hides MCP tools behind tool_search, so a model that does not look thinks they are missing.
         + "需要工具時，先用 tool_search 查找可用的工具（包括使用者自己安裝的 MCP 外掛工具），不要沒查就說沒有、沒有連線或做不到。"
         + "找到符合需求的外掛工具時優先使用它，不要改用終端機指令或自行安裝其他程式繞過；外掛工具失敗時，才改用其他方法並說明原因。"
-        + "下載檔案、影片或串流時，優先使用 Divebird 下載管理員的工具；它回報需要確認時，請使用者到 Divebird 視窗確認。";
+        + "下載檔案、影片或串流時，優先使用 Divebird 下載管理員的工具；它回報需要確認時，請使用者到 Divebird 視窗確認。"
+        + "下載前先確認對象（影片標題或網址）就是使用者要的那一個：從瀏覽器偵測到的影音可能是預覽、廣告或其他分頁的內容，對不上就不要下載；下載完成後回報標題、檔名與存放位置。"
+        // A small model otherwise repeats one failing command until the turn budget runs out.
+        + "同一個指令或工具失敗兩次就換別的方法，不要重複執行完全相同的失敗指令；連續失敗三次就停下來，告訴使用者卡在哪裡並詢問接下來要怎麼做。";
     // Toolsets that let a typed message act on this computer or reach beyond the conversation.
     private static readonly string[] RiskyToolsets = ["terminal", "file", "code_execution", "computer_use", "browser", "cronjob", "delegation"];
     private static readonly TimeSpan RetryBudget = TimeSpan.FromMinutes(2);
@@ -35,6 +38,7 @@ internal sealed partial class HermesChat : IDisposable
     private readonly HttpClient http;
     private readonly AuthenticationHeaderValue auth;
     private readonly string statePath;
+    private volatile string? runId;
 
     internal HermesChat(Uri baseUrl, string apiKey, string statePath)
     {
@@ -117,8 +121,9 @@ internal sealed partial class HermesChat : IDisposable
         }
     }
 
-    // Streams the turn so `activity` hears about each tool Hermes starts; returns the final answer.
-    internal async Task<string> AskAsync(string text, Action<string> activity, CancellationToken token)
+    // Streams the turn so `activity` hears about each tool Hermes starts, with how many times in a row
+    // it started the same thing (a retry loop shows as a rising count); returns the final answer.
+    internal async Task<string> AskAsync(string text, Action<string, int> activity, CancellationToken token)
     {
         // Retries of one message keep this key, which Hermes uses to admit a turn only once.
         string idempotency = Guid.NewGuid().ToString("N");
@@ -167,10 +172,18 @@ internal sealed partial class HermesChat : IDisposable
     // agent narrating its plan, so only the text after the last tool call is the answer. The exception
     // mirrors Hermes itself: an answer sent together with bookkeeping calls (memory, todo list, skills)
     // and followed by nothing is still the answer, but Hermes does not stream it a second time.
-    private static async Task<string> ReadAnswerAsync(HttpResponseMessage response, Action<string> activity, CancellationToken token)
+    private async Task<string> ReadAnswerAsync(HttpResponseMessage response, Action<string, int> activity, CancellationToken token)
+    {
+        try { return await ReadEventsAsync(response, activity, token); }
+        finally { runId = null; }
+    }
+
+    private async Task<string> ReadEventsAsync(HttpResponseMessage response, Action<string, int> activity, CancellationToken token)
     {
         string earlier = "";
         bool onlyBookkeeping = false;
+        string? lastDoing = null;
+        int repeat = 0;
         using var turn = CancellationTokenSource.CreateLinkedTokenSource(token);
         turn.CancelAfter(TurnLimit);
         using var idle = CancellationTokenSource.CreateLinkedTokenSource(turn.Token);
@@ -213,6 +226,8 @@ internal sealed partial class HermesChat : IDisposable
             switch (kind)
             {
                 case "message":
+                    // The completion id doubles as Hermes' run id, which /stop interrupts.
+                    if (runId == null && Text(root, "id") is { } id && id.StartsWith("chatcmpl-", StringComparison.Ordinal)) runId = id;
                     if (root.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0
                         && choices[0].TryGetProperty("delta", out var delta) && delta.ValueKind == JsonValueKind.Object
                         && delta.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String)
@@ -227,15 +242,21 @@ internal sealed partial class HermesChat : IDisposable
                     var said = answer.ToString().Trim();
                     if (said.Length > 0) { earlier = said; onlyBookkeeping = bookkeeping; }
                     else onlyBookkeeping &= bookkeeping;
-                    if (ToolStatus.Short(said, 60) is { } plan) activity(plan);
+                    if (ToolStatus.Short(said, 60) is { } plan) activity(plan, 1);
                     answer.Clear();
-                    if (ToolStatus.Describe(tool, Text(root, "label")) is { } doing) activity(doing);
+                    if (ToolStatus.Describe(tool, Text(root, "label")) is { } doing)
+                    {
+                        // Narration in between does not break the count: the loop is the same tool again.
+                        repeat = doing == lastDoing ? repeat + 1 : 1;
+                        lastDoing = doing;
+                        activity(doing, repeat);
+                    }
                     break;
                 case "hermes.status":
-                    if (ToolStatus.Short(Text(root, "text"), 60) is { } note) activity(note);
+                    if (ToolStatus.Short(Text(root, "text"), 60) is { } note) activity(note, 1);
                     break;
                 case "approval.request":
-                    activity("Hermes 正在等你核准一個操作");
+                    activity("Hermes 正在等你核准一個操作", 1);
                     break;
             }
         }
@@ -246,6 +267,26 @@ internal sealed partial class HermesChat : IDisposable
         // A speech bubble cannot show images: Hermes inlines them as data URLs or, in streamed text,
         // refers to them as MEDIA:<path> tags.
         return MediaImage().Replace(InlineImage().Replace(reply, "（圖片）"), "（圖片）").Trim();
+    }
+
+    // Asks Hermes to interrupt the turn now streaming (it also stops the background processes that
+    // turn started); false when no turn is running or Hermes did not accept.
+    internal async Task<bool> StopAsync(CancellationToken token)
+    {
+        if (runId is not { } run) return false;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"v1/runs/{Uri.EscapeDataString(run)}/stop");
+            request.Headers.Authorization = auth;
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            limit.CancelAfter(TimeSpan.FromSeconds(10));
+            using var response = await http.SendAsync(request, limit.Token);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception error) when (error is HttpRequestException || error is OperationCanceledException && !token.IsCancellationRequested)
+        {
+            return false;
+        }
     }
 
     private static string? Text(JsonElement root, string name) =>
