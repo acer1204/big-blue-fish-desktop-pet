@@ -21,7 +21,11 @@ internal sealed partial class HermesChat : IDisposable
         + "不要使用 Markdown 標記、程式碼區塊或表格；盡量簡短（約 150 字內），內容很長時先講重點。"
         + "可以用 play_action 讓魚魚做動作；呼叫時動作名稱必須和 list_actions 回傳的名稱（簡體字）一字不差，"
         + "播放失敗就放棄，不要一直重試。"
-        + "只有在使用者這則訊息明確要求你看螢幕時才可以截圖，而且優先使用 capture_foreground。";
+        + "只有在使用者這則訊息明確要求你看螢幕時才可以截圖，而且優先使用 capture_foreground。"
+        // Hermes hides MCP tools behind tool_search, so a model that does not look thinks they are missing.
+        + "需要工具時，先用 tool_search 查找可用的工具（包括使用者自己安裝的 MCP 外掛工具），不要沒查就說沒有、沒有連線或做不到。"
+        + "找到符合需求的外掛工具時優先使用它，不要改用終端機指令或自行安裝其他程式繞過；外掛工具失敗時，才改用其他方法並說明原因。"
+        + "下載檔案、影片或串流時，優先使用 Divebird 下載管理員的工具；它回報需要確認時，請使用者到 Divebird 視窗確認。";
     // Toolsets that let a typed message act on this computer or reach beyond the conversation.
     private static readonly string[] RiskyToolsets = ["terminal", "file", "code_execution", "computer_use", "browser", "cronjob", "delegation"];
     private static readonly TimeSpan RetryBudget = TimeSpan.FromMinutes(2);

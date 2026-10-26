@@ -19,7 +19,7 @@
 - **金鑰保護**：遠端 API Key 與氣象署授權碼以目前的 Windows 帳戶加密（DPAPI）後儲存，而且不會出現在 MCP 的 `get_settings` 結果中。這可以防止設定檔被複製到其他帳戶或電腦後讀出金鑰，但同一個 Windows 帳戶下執行的其他程式仍然可以解密。
 - **測試同步**：`code/tests/` 中比對介面文字的測試程式也隨之改為繁體中文。
 - **氣泡不出現簡體字**：Windows 版魚魚的氣泡文字（自己的模型、天氣、MCP 的 `say`／`say_next`、Hermes 橋接）在顯示前都會經過新增的 `CompanionTraditional`，用 [OpenCC](https://github.com/BYVoid/OpenCC) 1.4.2 的字典把簡體字轉成台灣繁體。整段都是簡體時，結果和 OpenCC 的 `s2twp` 相同（包括軟件→軟體這類台灣用語），另外修正了 OpenCC 會轉錯的「一起干杯」（幹杯）與「的士兵、的士林」（計程車）；繁體句子裡夾雜的簡體字只改那幾個字，原本就是繁體或英文的內容維持不變。模型邊產生邊顯示時，需要轉換的句子會等最後一段文字完整再顯示，避免轉到一半的字一閃而過。已知的取捨：為了修正常見的「以后、然后」，罕見用法「選后」也會變成「選後」。MCP 工具回傳給 Agent 的仍是原文。新增的 `code/tests/TraditionalTextVerification` 以 8591 筆語料驗證轉換結果。
-- **Hermes 對話橋接**：新增 `code/BigBlueFish.HermesBridge`（C#）與 `code/run-hermes-bridge.ps1`。雙擊魚魚在輸入框打的字，會交給本機的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) API 回答，回答再顯示在魚魚的氣泡裡。等待時魚魚會播放思考動作，氣泡也會即時顯示 Hermes 正在做什麼（例如「正在上網搜尋：…」「正在電腦上執行指令…」）和已經過的時間；外部 Agent 的氣泡還在顯示時，魚魚不會自己開口把它蓋掉。同一段對話會延續上下文，連重新啟動橋接程式後也接得上；在輸入框打 `/new` 會開始新的對話，但 Hermes 寫進長期記憶的內容（例如被要求「記住」的事）不會因此清掉。
+- **Hermes 對話橋接**：新增 `code/BigBlueFish.HermesBridge`（C#）與 `code/run-hermes-bridge.ps1`。雙擊魚魚在輸入框打的字，會交給本機的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) API 回答，回答再顯示在魚魚的氣泡裡。等待時魚魚會播放思考動作，氣泡也會即時顯示 Hermes 正在做什麼（例如「正在上網搜尋：…」「正在電腦上執行指令…」）和已經過的時間；MCP 外掛工具的進度會依伺服器與工具名稱自動產生，例如「正在用 Divebird 查詢下載」，之後新增的 MCP 伺服器也適用。外部 Agent 的氣泡還在顯示時，魚魚不會自己開口把它蓋掉。Hermes 預設不會把 MCP 外掛工具全部直接列給模型，所以提示詞會要求它需要工具時先用 `tool_search` 查找、找到合適的外掛工具就優先使用，下載檔案或影片時優先使用 Divebird 下載管理員。同一段對話會延續上下文，連重新啟動橋接程式後也接得上；在輸入框打 `/new` 會開始新的對話，但 Hermes 寫進長期記憶的內容（例如被要求「記住」的事）不會因此清掉。
 
 ### 使用 Hermes 對話橋接
 
@@ -27,6 +27,8 @@
 2. Hermes 的 `.env` 設定一組 16 字元以上的 `API_SERVER_KEY`，重新啟動 Hermes gateway（`hermes gateway restart -y`），讓 API 介面在 `http://127.0.0.1:8642` 啟動。
 3. 執行 `./code/run-hermes-bridge.ps1`（會先編譯再啟動）。橋接程式會自動尋找 `BigBlueFish.Mcp.exe`，並從 Hermes 的 `.env` 讀取金鑰，不會把金鑰寫到其他地方或顯示出來。
 4. 雙擊魚魚輸入訊息，按「送出」或 Ctrl+Enter。
+
+在 Hermes 新增 MCP 伺服器後，Hermes gateway 會自動載入，不必重新啟動橋接程式；如果 Hermes 在先前的對話裡說過找不到某個工具，可以在輸入框打 `/new` 開始新的對話，或在訊息裡直接點名要用的工具。
 
 注意：Hermes 回答時可以使用它所有的工具，包括在這台電腦執行終端機指令與修改檔案；能在魚魚輸入框打字的人，就能請 Hermes 做這些事。橋接程式啟動時若發現 Hermes 開著這類工具組，會先顯示提醒。訊息也會送到 Hermes 設定的模型服務。請只在自己的電腦上使用，並視需要在 Hermes 的設定中限制 API 平台可用的工具。
 
