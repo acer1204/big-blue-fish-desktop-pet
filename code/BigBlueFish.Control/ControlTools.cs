@@ -21,7 +21,7 @@ public static class ControlTools
         "BubbleDurationIndex", "AnimationIntervalSeconds", "BreakfastHour", "LunchHour", "DinnerHour", "Left", "Top", "LastBrushDate", "StartupEnabled", "PuppetMode", "McpChatEnabled"];
     private const string SettingsInput = """
         {"settings":{"type":"object","additionalProperties":false,"description":"按需提供欄位；省略的欄位保留。欄位名區分大小寫。McpEnabled 只讀。成功後讀取實際值；位置可能因工作區限制調整。","properties":{
-          "ModelEnabled":{"type":"boolean","description":"啟用內建模型；不限制外部 say。"},
+          "ModelEnabled":{"type":"boolean","description":"設定頁的「啟用模型說話」：允許桌寵用內建或遠端模型自主說話與播報天氣；不限制外部 say。"},
           "GpuEnabled":{"type":"boolean","description":"本機推理使用 GPU；切換會停止目前模型任務。"},
           "PublicInfo":{"type":"boolean","description":"內建天氣和科技新聞。"},
           "ForegroundEnabled":{"type":"boolean","description":"內建模型是否讀取螢幕；不是 MCP 截圖的權限開關。"},

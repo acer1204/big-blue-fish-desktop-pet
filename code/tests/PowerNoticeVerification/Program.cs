@@ -95,7 +95,7 @@ internal static class Program
             Set(preferences, "BubbleDurationIndex", 0);
             Set(preferences, "ModelEnabled", false);
             ((Task)Invoke(window, "SpeakCompanionWeather")!).GetAwaiter().GetResult(); Steady(300);
-            Check(text.Text.Contains("啟用本機大模型") && bubble.Visibility == Visibility.Visible, "Disabled-model notice disappeared");
+            Check(text.Text.Contains("「啟用模型說話」，再來檢視天氣") && bubble.Visibility == Visibility.Visible, "Disabled-model notice disappeared");
             Set(preferences, "ModelEnabled", true);
             Power(true); Invoke(window, "ApplyCompanionPowerPolicy");
             var request = (Task)Invoke(window, "SpeakCompanionTest")!;

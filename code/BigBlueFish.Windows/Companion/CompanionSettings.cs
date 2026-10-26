@@ -118,7 +118,7 @@ public partial class MainWindow
             p.Children.Add(c);
         }
 
-        Toggle("啟用本機大模型", preferences.ModelEnabled, v =>
+        Toggle("啟用模型說話", preferences.ModelEnabled, v =>
         {
             preferences.ModelEnabled = v;
             if (!v)

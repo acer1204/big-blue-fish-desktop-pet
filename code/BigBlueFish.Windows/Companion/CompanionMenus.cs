@@ -51,7 +51,7 @@ public partial class MainWindow
         if (hiddenByUser) RestoreCompanion();
         if (!preferences.ModelEnabled)
         {
-            ShowCompanionNotice("主人，請先在設定裡啟用本機大模型，再來檢視天氣吧～");
+            ShowCompanionNotice("主人，請先在設定裡開啟「啟用模型說話」，再來檢視天氣吧～");
             return;
         }
         if (!brain.CanRunOnCurrentPower)
@@ -102,7 +102,7 @@ public partial class MainWindow
         if (hiddenByUser) RestoreCompanion();
         if (!preferences.ModelEnabled)
         {
-            ShowCompanionNotice("主人，目前設定暫停了模型，請啟用模型並確認供電設定後再測試～");
+            ShowCompanionNotice("主人，目前關閉了「啟用模型說話」，請到設定裡開啟，並確認供電設定後再測試～");
             return Task.CompletedTask;
         }
         if (!brain.CanRunOnCurrentPower)

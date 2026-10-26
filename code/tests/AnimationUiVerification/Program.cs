@@ -151,9 +151,9 @@ internal static class Program
         Check(!menu.IsOpen&&Read(w,"companionSettings") is Window {IsVisible:true},"styled settings action opens actual settings and dismisses menu");
         ((Window)Read(w,"companionSettings")).Close();
         menu.IsOpen=true;Pump();items[1].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
-        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("啟用本機大模型"),"weather action retains model-off behavior");
+        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("「啟用模型說話」，再來檢視天氣"),"weather action retains model-off behavior");
         menu.IsOpen=true;Pump();items[2].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
-        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("目前設定暫停了模型"),"speech test action retains model-off behavior");
+        Check(!menu.IsOpen&&((TextBlock)Read(w,"bubbleText")).Text.Contains("目前關閉了「啟用模型說話」"),"speech test action retains model-off behavior");
         menu.IsOpen=true;Pump();items[3].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump();
         Check(!w.IsVisible&&(bool)Read(w,"hiddenByUser"),"styled hide action uses existing hide lifecycle");
         Invoke(w,"RestoreCompanion");Pump();Check(w.IsVisible&&!(bool)Read(w,"hiddenByUser"),"existing restore still works");
