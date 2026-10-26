@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System.Collections.Concurrent;
 using System.IO.Pipes;
 using System.Text;
@@ -145,7 +146,7 @@ public sealed class ControlServer : IDisposable
                 var version = args.TryGetProperty("protocolVersion", out var requested) && requested.GetString() == "2025-03-26" ? "2025-03-26" : "2025-11-25";
                 Result(id, new { protocolVersion = version, capabilities = new { tools = new { listChanged = false }, logging = new { }, resources = new { subscribe = true, listChanged = false } },
                     serverInfo = new { name = "BigBlueFish", version = typeof(ControlServer).Assembly.GetName().Version!.ToString(3) },
-                    instructions = "控制使用者本機的藍色大肥魚。先讀get_settings與工具schema；AnimationIntervalSeconds只接受30–300整數秒，SpeechMinMinutes是列舉檔位。say/say_next顯示你提供的原文，不能把成功回執當作已讀或播放完成。點選、拖動及雙擊輸入的user_message（detail.text為原文）通過notifications/message推送，logger為bigbluefish.interaction、level為info；需接收info記錄，或訂閱並讀取bigbluefish://interactions。客戶端自行安排收到事件後的模型呼叫，本服務不會自動啟動你的Agent輪次。資源只保留最近128條記憶體事件，按sequence去重，斷線不保證補齊。截圖會把螢幕內容交給目前客戶端；ForegroundEnabled僅控制內建讀屏，不限制MCP截圖。開啟PuppetMode需真實使用者確認，等待期間其他控制與拖動可繼續；模式在斷開後保持，需顯式關閉才能恢復自主功能。修改設定不會開啟或啟用設定視窗。多個客戶端共享狀態和佇列，沒有獨佔鎖。" });
+                    instructions = "控制使用者本機的藍色大肥魚。先讀get_settings與工具schema；AnimationIntervalSeconds只接受30–300整數秒，SpeechMinMinutes是列舉檔位。say/say_next顯示你提供的原文，不能把成功回應當作已讀或播放完成。點選、拖曳及雙擊輸入的user_message（detail.text為原文）透過notifications/message推送，logger為bigbluefish.interaction、level為info；需接收info記錄，或訂閱並讀取bigbluefish://interactions。客戶端自行安排收到事件後的模型呼叫，本服務不會自動啟動你的Agent輪次。資源只在記憶體中保留最近128筆事件，依sequence去除重複，斷線後不保證補齊。截圖會把螢幕內容交給目前客戶端；ForegroundEnabled僅控制內建模型讀取螢幕，不限制MCP截圖。開啟PuppetMode需真實使用者確認，等待期間其他控制與拖曳可繼續；中斷連線後模式仍會保持，需明確關閉才能恢復自主功能。修改設定不會開啟或啟用設定視窗。多個客戶端共享狀態和佇列，沒有獨佔鎖。" });
                 return Task.CompletedTask;
             }
             if (method == "ping") { Result(id, new { }); return Task.CompletedTask; }

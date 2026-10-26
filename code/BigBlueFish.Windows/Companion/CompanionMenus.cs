@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -171,7 +172,7 @@ public partial class MainWindow
             SaveCompanion();
         };
         panel.Children.Add(cwaKey);
-        panel.Children.Add(new TextBlock { Text = "天氣來自中央氣象署開放資料的鄉鎮天氣預報；授權碼可在氣象資料開放平臺免費申請。", FontSize = 11,
+        panel.Children.Add(new TextBlock { Text = $"天氣資料：中央氣象署 {DateTime.Now.Year} 鄉鎮天氣預報（F-D0047）。此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。政府資料開放授權條款：https://data.gov.tw/license 。授權碼可在氣象資料開放平臺免費申請。", FontSize = 11,
             Foreground = System.Windows.Media.Brushes.SlateGray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 4) });
     }
 }

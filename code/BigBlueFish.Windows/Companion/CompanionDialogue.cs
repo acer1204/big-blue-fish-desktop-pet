@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 namespace BigBlueFish.Windows;
 
 // User-authored lines demonstrate transferable voice, not scene-to-answer mappings.

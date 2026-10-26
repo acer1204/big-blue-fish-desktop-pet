@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using Microsoft.Win32;
 using System;
 using System.Linq;
@@ -321,7 +322,7 @@ public partial class MainWindow
         var remoteModel = RemoteField("模型名稱（留空則使用伺服器提供的第一個模型）", preferences.RemoteModel);
         var screenImages = new CheckBox { Content = "模型支援圖片時，直接傳送視窗截圖（取代 OCR 文字）", IsChecked = preferences.ScreenImages, Margin = new Thickness(0, 12, 0, 4) };
         remotePanel.Children.Add(screenImages);
-        remotePanel.Children.Add(new TextBlock { Text = "使用遠端模型時，讀屏文字或截圖會發送到上面的伺服器。", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray, Margin = new Thickness(0, 4, 0, 4) });
+        remotePanel.Children.Add(new TextBlock { Text = "使用遠端模型時，視窗文字（OCR 辨識結果）或視窗截圖、前景視窗的程式名稱、標題、視窗類別與介面元件名稱、目前時間，以及開啟天氣和新聞時的天氣地點與預報、新聞內容，都會傳送到上面的伺服器。", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray, Margin = new Thickness(0, 4, 0, 4) });
         var testRemote = new Button { Content = "儲存並測試連線", Padding = new Thickness(8), Margin = new Thickness(0, 8, 0, 4) };
         remotePanel.Children.Add(testRemote);
         p.Children.Add(remotePanel);

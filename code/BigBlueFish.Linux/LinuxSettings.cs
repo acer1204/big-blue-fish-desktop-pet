@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
@@ -99,11 +100,11 @@ internal sealed partial class LinuxPetWindow
             var regions = new StackPanel { Spacing = 8 }; body.Children.Add(regions);
             ComboBox province = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch }, city = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch }, district = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
             regions.Children.Add(province); regions.Children.Add(city); regions.Children.Add(district);
-            var selected = CompanionRegions.District(Preferences.WeatherRegionCode); var provinces = CompanionRegions.All.Where(r => r.Level == 0).ToArray();
+            var selected = CompanionRegions.District(Preferences.WeatherRegionCode); var provinces = CompanionRegions.All.Where(r => r.Level == 0 && r.Code != CompanionRegions.TaiwanRoot).ToArray(); // Taiwan needs a CWA code, which Linux settings do not collect.
             CompanionRegion[] cities = [], districts = []; bool changing = true;
             void PopulateCity(CompanionRegion choice, string? keep = null) { cities = CompanionRegions.Children(choice.Code); city.ItemsSource = cities.Select(r => r.Name).ToArray(); city.SelectedIndex = Math.Max(0, Array.FindIndex(cities,r => r.Code == keep)); }
             void PopulateDistrict(CompanionRegion choice, string? keep = null) { districts = CompanionRegions.Children(choice.Code); district.ItemsSource = districts.Select(r => r.Name).ToArray(); district.SelectedIndex = Math.Max(0, Array.FindIndex(districts,r => r.Code == keep)); }
-            province.ItemsSource = provinces.Select(r => r.Name).ToArray(); province.SelectedIndex = Array.FindIndex(provinces,r => r.Code == CompanionRegions.Parent(CompanionRegions.Parent(selected)).Code);
+            province.ItemsSource = provinces.Select(r => r.Name).ToArray(); province.SelectedIndex = Math.Max(0, Array.FindIndex(provinces,r => r.Code == CompanionRegions.Parent(CompanionRegions.Parent(selected)).Code));
             PopulateCity(provinces[province.SelectedIndex], CompanionRegions.Parent(selected).Code); PopulateDistrict(cities[city.SelectedIndex], selected.Code); changing = false;
             void RegionChanged() { if (district.SelectedIndex >= 0 && district.SelectedIndex < districts.Length) { Preferences.WeatherRegionCode = districts[district.SelectedIndex].Code; ApplySettings(); } }
             province.SelectionChanged += (_,_) => { if(changing || province.SelectedIndex < 0) return; changing = true; PopulateCity(provinces[province.SelectedIndex]); PopulateDistrict(cities[city.SelectedIndex]); changing = false; RegionChanged(); };

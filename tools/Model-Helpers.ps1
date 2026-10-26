@@ -1,4 +1,5 @@
-﻿# ModelStore.cs uses the same source catalog and selection format. ModelScriptsVerification.ps1 checks parity.
+﻿# Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
+# ModelStore.cs uses the same source catalog and selection format. ModelScriptsVerification.ps1 checks parity.
 function Get-ModelSources {
     @(
         [pscustomobject]@{
@@ -65,7 +66,7 @@ function Set-DevelopmentJunction([string]$Path,[string]$Target) {
     $resolved=(Resolve-Path -LiteralPath $Target).Path
     $existing=Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
     if($existing){
-        if($existing.LinkType -ne 'Junction'){throw "目錄已存在且不是開發目錄連線，請檢查：$Path"}
+        if($existing.LinkType -ne 'Junction'){throw "目錄已存在且不是開發目錄連結，請檢查：$Path"}
         if([IO.Path]::GetFullPath([string]$existing.Target) -ieq $resolved){return}
         # Delete only the junction itself, never recurse into the shared runtime/model directory.
         [IO.Directory]::Delete($existing.FullName)

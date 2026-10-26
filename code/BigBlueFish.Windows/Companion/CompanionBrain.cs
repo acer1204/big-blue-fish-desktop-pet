@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
@@ -68,6 +69,7 @@ internal sealed class CompanionBrain : IDisposable
         remoteUrl = string.IsNullOrEmpty(url) ? null : url;
         remoteApiKey = apiKey.Trim();
         remoteModel = model.Trim();
+        remoteVision = false;
         active?.Cancel();
         StopRunner();
         Status = UseRemote ? "等待說話時連線遠端模型" : "等待說話時啟動";
@@ -699,8 +701,11 @@ internal sealed class CompanionBrain : IDisposable
                 else context += "使用者正在使用電腦。";
 #else
                 var context = $"現在是{DateTime.Now:yyyy年M月d日 HH:mm}。" + (useForeground ? CompanionNative.ForegroundContext(foregroundHandle) : "使用者正在使用電腦。");
-                if (useForeground && VisionAvailable)
-                    image = CompanionNative.ForegroundWindowImage(foregroundHandle);
+                // A remote server only receives screenshots when the user ticked the option,
+                // and only after /v1/models of the current server confirmed image input.
+                if (useForeground && UseRemote && ScreenImages) await EnsureRunner(token);
+                if (useForeground && VisionAvailable && (!UseRemote || ScreenImages))
+                    image = CompanionNative.ForegroundWindowImage(foregroundHandle, UseRemote ? 1568 : 768);
 #endif
                 if (usePublic && Random.Shared.NextDouble() < .15)
 #if COMPANION_OCR

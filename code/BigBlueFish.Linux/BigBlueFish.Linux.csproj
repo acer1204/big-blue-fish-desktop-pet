@@ -1,3 +1,4 @@
+<!-- Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0). -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><RuntimeIdentifier>linux-x64</RuntimeIdentifier><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><AssemblyName>BigBlueFish.Linux</AssemblyName><DefineConstants>$(DefineConstants);COMPANION_OCR;COMPANION_LINUX</DefineConstants></PropertyGroup>
   <PropertyGroup Condition="'$(CompanionEdition)' == 'Safe'"><NuGetLockFilePath>packages.safe.lock.json</NuGetLockFilePath></PropertyGroup>

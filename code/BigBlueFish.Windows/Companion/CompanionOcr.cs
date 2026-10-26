@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 #if COMPANION_OCR
 using System;
 using System.Collections.Generic;
@@ -43,7 +44,7 @@ internal static class CompanionOcr
             ?? languages.FirstOrDefault(x => x.LanguageTag.StartsWith("en", StringComparison.OrdinalIgnoreCase))
             ?? languages.FirstOrDefault();
         if (language == null)
-            throw new IOException("Windows 尚未安裝文字辨識語言，請在語言設定中安裝簡體中文文字辨識");
+            throw new IOException("Windows 尚未安裝文字辨識語言，請在語言設定中安裝中文（繁體或簡體）文字辨識");
         var engine = OcrEngine.TryCreateFromLanguage(new Language(language.LanguageTag))
             ?? throw new IOException("無法啟動本地文字辨識");
         var bytes = Convert.FromBase64String(image.DataUrl[(image.DataUrl.IndexOf(',') + 1)..]);

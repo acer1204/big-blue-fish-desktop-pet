@@ -1,5 +1,124 @@
 # 蓝色大肥鱼桌宠 / Big Blue Fish Desktop Pet
 
+> [!NOTE]
+> **這是台灣版修改分支（`taiwan-edition`），不是原作者的官方版本。**
+>
+> 本分支由 acer1204 於 2026 年 10 月 26 日，以原作者 [Bai-Cute/big-blue-fish-desktop-pet](https://github.com/Bai-Cute/big-blue-fish-desktop-pet) 的 main 分支 commit `5eead98`（1.0.1 版標籤 `v1.0.1` 之後，只多了一個補上 LICENSE 著作權欄位的修正）為基礎修改。下方「台灣版修改說明」列出主要變更與所有修改過的檔案；說明結束處的分隔線以下是原作者的說明（簡體中文），描述的是原版的行為。
+
+## 台灣版修改說明
+
+依 [Apache License 2.0](LICENSE) 第 4 條第 (b) 款，本節列出這個分支新增、刪除或修改的檔案，以及修改者與修改日期。修改過的程式碼與專案檔（.cs、.xaml、.csproj、.ps1，共 56 個）第一行都加註了修改聲明；`README.md` 與建置安裝檔時會一併打包的 [`code/THIRD-PARTY.md`](code/THIRD-PARTY.md) 則在開頭段落註明這是修改版。原作者的著作權聲明（Copyright 2026 Bai-Cute）與授權條款維持不變，本分支的修改同樣以 Apache-2.0 授權釋出。本分支並非由原作者維護，修改內容也未經原作者審閱或背書；使用時遇到問題，請到本分支的儲存庫 [acer1204/big-blue-fish-desktop-pet](https://github.com/acer1204/big-blue-fish-desktop-pet/issues) 回報，不要回報給原作者。
+
+### 主要變更
+
+- **動畫更順暢**：桌寵顯示期間把系統計時器解析度調到 1 毫秒（隱藏時釋放），讓每一幀都在預定時間顯示，避免幀間隔在約 31 與 47 毫秒之間跳動。點選與拖曳用到的 6 個動作會在啟動後預先解碼開頭 6 幀（約多佔用 33 MB 記憶體）；在修改者 acer1204 的電腦上，放開滑鼠或開始拖曳後約 10 毫秒就會出現第一幀（原本約 60–90 毫秒），實際時間依電腦而異。其他動作切換時仍需等待約 50–90 毫秒。
+- **可使用遠端模型**：設定頁「模型與供電」新增「模型來源」，可以改用遠端的 llama.cpp 伺服器（OpenAI 相容介面），填入網址、API Key 與模型名稱，也提供「儲存並測試連線」按鈕。使用遠端模型時，會傳送到該伺服器的內容包括：視窗文字（OCR 辨識結果）或視窗截圖、前景視窗的程式名稱、標題、視窗類別與介面元件名稱、目前時間，以及開啟天氣和新聞時的天氣地點與預報、新聞內容。遠端模式仍需開啟「啟用本機大模型」；「拔掉電源時暫停模型並釋放記憶體」只對本機模型有效，使用電池時遠端模型會繼續執行。
+- **直接看截圖**：遠端伺服器在 `/v1/models` 回報該模型支援圖片輸入，並且勾選了「模型支援圖片時，直接傳送視窗截圖」時，才會改傳視窗截圖（長邊最多 1568 像素），不再傳 OCR 文字；截圖失敗或伺服器沒有回報支援圖片時，預設的 OCR 版會自動改回 OCR（以 Vision 模式自行編譯的版本沒有 OCR，只會傳視窗名稱等文字資訊）。
+- **繁體中文與台灣用語**：Windows 版介面、與主程式共用的模型安裝和更新視窗、MCP 工具說明與同意視窗，以及魚魚的說話語氣，都改為台灣繁體中文與台灣用語。氣泡字型由不含繁體字的「乐米小奶泡体」改為 [jf open 粉圓 2.1](https://github.com/justfont/open-huninn-font)（SIL OFL 1.1）；設定視窗、右鍵選單、系統匣選單與共用視窗改用微軟正黑體。106 個動作名稱同時用作動畫檔名與 MCP 動作名稱，因此仍維持原本的簡體中文。
+- **台灣天氣**：Windows 版的天氣地點改為「縣市 → 鄉鎮市區」兩層選單（22 個縣市、368 個鄉鎮市區），新安裝的預設地點為臺北市中正區。天氣資料改用[中央氣象署開放資料](https://opendata.cwa.gov.tw/)的鄉鎮天氣預報，需要自行申請並在設定中填入授權碼；填入之前，台灣地點（包括預設的臺北市中正區）不會有天氣資料，也不會改用 Open-Meteo。原本的 Open-Meteo 天氣仍保留給非台灣地點（先前儲存或透過 MCP 設定的）與 Linux 版使用。Linux 版沒有授權碼欄位，所以不會出現本分支新增的氣象署縣市清單，MCP 也不能把 Linux 版設成台灣鄉鎮；原有地區資料中的「台湾省」仍會出現，但和原版一樣沒有座標，選了也不會有天氣資料。
+- **金鑰保護**：遠端 API Key 與氣象署授權碼以目前的 Windows 帳戶加密（DPAPI）後儲存，而且不會出現在 MCP 的 `get_settings` 結果中。這可以防止設定檔被複製到其他帳戶或電腦後讀出金鑰，但同一個 Windows 帳戶下執行的其他程式仍然可以解密。
+- **測試同步**：`code/tests/` 中比對介面文字的測試程式也隨之改為繁體中文。
+
+### 新增或移除的第三方內容
+
+- 新增 jf open 粉圓 2.1 字型（未修改）：著作權屬 justfont Co., LTD.，以 SIL Open Font License 1.1 授權；字型內含 Varela Round（SIL OFL 1.1）的拉丁字母，漢字部分衍生自 Kosugi Maru（Apache-2.0）。字型授權全文在 `code/licenses/jf-open-huninn-OFL.txt`，Apache-2.0 全文在 `code/licenses/Apache-2.0.txt`。
+- 移除「乐米小奶泡体」字型及其授權說明，本分支不再散布該字型。
+- 台灣天氣資料只在執行時向中央氣象署查詢，不隨程式附帶天氣資料。顯名聲明：中央氣象署 2026 鄉鎮天氣預報（F-D0047）。此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。政府資料開放授權條款：https://data.gov.tw/license 。中央氣象署並未推薦或背書本程式。
+- 台灣縣市與鄉鎮市區清單由新增的 `code/tools/import-taiwan-regions.py` 產生：從原有的 AreaCity 地區資料（MIT）取出台灣部分，以 OpenCC 轉換為繁體中文；金門縣與連江縣的鄉鎮因為 AreaCity 歸在福建省之下，直接寫在腳本中。
+- 版本、SHA-256 雜湊值與授權的詳細資訊已更新於[第三方聲明](code/THIRD-PARTY.md)（英文）。
+
+### 尚未修改的部分
+
+- 安裝程式與解除安裝程式（`installer/`、`uninstaller/`）自己的文字，以及 Linux 版的設定、選單等介面仍為簡體中文；但它們共用的視窗框架、模型下載視窗、模型狀態與錯誤訊息，以及魚魚的回覆已改為繁體，所以畫面會繁簡混雜。Linux 版的氣泡字型也已改為 jf open 粉圓，對話框字型改為 Noto Sans CJK TC。Linux 版可以編譯，但沒有實際執行驗證。
+- 執行檔的產品名稱與檔案描述（工作管理員中顯示的名稱）、MCP 橋接程式 `BigBlueFish.Mcp` 的連線錯誤訊息，以及 `tools/` 底下建置與模型準備腳本的訊息仍為簡體中文（`Model-Helpers.ps1` 的模型來源名稱與錯誤訊息已改為繁體）。
+- 安裝後在 Windows「已安裝的應用程式」顯示的發行者與網址、Linux 套件的維護者與首頁，以及「檢查更新」的來源，目前仍指向原作者 Bai-Cute 及其儲存庫。在這些資訊改為指向本分支之前，本分支不提供編譯好的安裝檔，以免被誤認為原作者發行，或被「檢查更新」換回原版。
+- 本 README 分隔線以下的原作者說明、`docs/` 規格文件、`CHANGELOG.md`，以及建置安裝檔時附帶的 `release/README.md`（安裝說明）仍是原作者的內容，描述的是原版行為；其中「开源许可与第三方权利信息」一節仍列出原版的「乐米小奶泡体」字型，本分支實際附帶的字型與資料來源，請以上方「新增或移除的第三方內容」與 `code/THIRD-PARTY.md` 為準。
+- 科技新聞來源仍是 IT之家，提示詞會要求模型改寫成台灣繁體中文。
+
+### 修改過的檔案
+
+以下 64 個檔案由 acer1204 於 2026 年 10 月 26 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
+
+<details>
+<summary>展開檔案清單</summary>
+
+**新增（4）**
+
+- `code/BigBlueFish.Windows/Res/Font/jf-openhuninn-2.1.ttf`
+- `code/BigBlueFish.Windows/assets/regions/taiwan-regions.json`
+- `code/licenses/jf-open-huninn-OFL.txt`
+- `code/tools/import-taiwan-regions.py`
+
+**刪除（2）**
+
+- `code/BigBlueFish.Windows/Res/Font/LemiXiaoNaiPaoTi.ttf`
+- `code/licenses/Lemi-Xiao-Nai-PaoTi.txt`
+
+**修改（58）**
+
+- `README.md`
+- `code/BigBlueFish.Control/ControlServer.cs`
+- `code/BigBlueFish.Control/ControlTools.cs`
+- `code/BigBlueFish.Linux/BigBlueFish.Linux.csproj`
+- `code/BigBlueFish.Linux/LinuxMcp.cs`
+- `code/BigBlueFish.Linux/LinuxPetWindow.cs`
+- `code/BigBlueFish.Linux/LinuxSettings.cs`
+- `code/BigBlueFish.Windows/BigBlueFish.Windows.csproj`
+- `code/BigBlueFish.Windows/Companion/CompanionAnimationPolicy.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionAnimations.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionBrain.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionDialogue.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionEdgeLayout.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionJob.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionMaintenance.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionMcp.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionMenuStyles.xaml`
+- `code/BigBlueFish.Windows/Companion/CompanionMenus.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionNative.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionNews.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionOcr.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionOcrLayout.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionPreferences.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionRegions.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionScreenCapture.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionSettings.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionTrayIcon.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionTrayMenuRenderer.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionVideoPlayer.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionWeather.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionWindow.cs`
+- `code/BigBlueFish.Windows/MainWindow.xaml`
+- `code/THIRD-PARTY.md`
+- `code/tests/AnimationUiVerification/Program.cs`
+- `code/tests/ForegroundVerification/Program.cs`
+- `code/tests/InstallerVerification/DeploymentVerification.cs`
+- `code/tests/InstallerVerification/DownloadInterruptionVerification.cs`
+- `code/tests/McpProtocolVerification/Program.cs`
+- `code/tests/McpUiVerification/Program.cs`
+- `code/tests/OcrLayoutVerification/Program.cs`
+- `code/tests/OcrVerification/Program.cs`
+- `code/tests/PowerNoticeVerification/Program.cs`
+- `code/tests/RunnerVerification/LatencyVerification.cs`
+- `code/tests/RunnerVerification/MaintenanceVerification.cs`
+- `code/tests/RunnerVerification/NewsVerification.cs`
+- `code/tests/RunnerVerification/PerformanceVerification.cs`
+- `code/tests/RunnerVerification/PersonaVerification.cs`
+- `code/tests/RunnerVerification/Program.cs`
+- `code/tests/RunnerVerification/SpeechFlowVerification.cs`
+- `code/tests/RunnerVerification/TrayVerification.cs`
+- `code/tests/SafeEditionVerification/Program.cs`
+- `deployment/ArtifactDownload.cs`
+- `deployment/ModelInstallWindow.cs`
+- `deployment/ModelStore.cs`
+- `deployment/ModernUI.cs`
+- `deployment/UpdateService.cs`
+- `deployment/UpdateWindow.cs`
+- `tools/Model-Helpers.ps1`
+
+</details>
+
+---
+
 蓝色大肥鱼是一款住在电脑桌面上的 AI 桌宠软件，支持 Windows 与 Linux 双平台。她是一位蓝发的小鲸鱼娘，形象来自对 DeepSeek 的二创虚拟形象“蓝色大肥鱼”。软件内置 4B 本地大模型，借助 OCR 技术读懂主人正在桌面上做的事情，每隔一段时间就从文字气泡里送来一句可爱的话，陪伴和关心主人；她还会查看天气、浏览科技新闻，再用自己的方式讲给主人听。
 
 鱼鱼准备了一百多种可爱的动作表情，平时会在桌面上呼吸、哼歌、伸懒腰、吃零食、玩耍，到了饭点会认真吃饭，到了节日会换上应景的小活动，被点一下、被拎起来时也有专门设计的反应。每次启动，她都会提起裙摆向主人行礼请安；关闭时，也会用同样的礼仪和主人道别。

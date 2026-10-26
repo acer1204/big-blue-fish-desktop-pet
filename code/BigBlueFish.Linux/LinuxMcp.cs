@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Threading;
@@ -93,7 +94,7 @@ internal sealed partial class LinuxPetWindow
                 "Scale" or "BubbleScale" => Range(.5, 2), "AnimationIntervalSeconds" => Range(30, 300),
                 "BreakfastHour" or "LunchHour" or "DinnerHour" => Range(0, 23), "BubbleDurationIndex" => Range(0, 7),
                 "SpeechMinMinutes" => item.Value is int minutes && CompanionPreferences.SpeechRanges.Any(r => r.Min == minutes),
-                "WeatherRegionCode" => item.Value is string region && CompanionRegions.District(region).Code == region,
+                "WeatherRegionCode" => item.Value is string region && CompanionRegions.District(region).Code == region && !CompanionRegions.IsTaiwan(CompanionRegions.District(region)),
                 "LastBrushDate" => item.Value == null || item.Value is string date && DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _),
                 "Left" or "Top" => item.Value == null || Range(-1000000, 1000000), _ => item.Value is bool };
             if (!valid) throw new ArgumentException("设置值无效：" + item.Key);

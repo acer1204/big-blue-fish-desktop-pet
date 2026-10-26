@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -41,7 +42,7 @@ internal sealed class CompanionTrayMenu : ContextMenuStrip
         if (menuFont == null || Font.Unit != GraphicsUnit.Pixel || Math.Abs(Font.Size - 14 * scale) > .01f)
         {
             var previous = menuFont;
-            menuFont = new Font("Microsoft YaHei UI", 14 * scale, GraphicsUnit.Pixel);
+            menuFont = new Font("Microsoft JhengHei UI", 14 * scale, GraphicsUnit.Pixel);
             Font = menuFont;
             previous?.Dispose();
         }
