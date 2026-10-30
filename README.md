@@ -3,11 +3,11 @@
 > [!NOTE]
 > **這是台灣版修改分支（`taiwan-edition`），不是原作者的官方版本。**
 >
-> 本分支由 acer1204 於 2026 年 10 月 26 日，以原作者 [Bai-Cute/big-blue-fish-desktop-pet](https://github.com/Bai-Cute/big-blue-fish-desktop-pet) 的 main 分支 commit `5eead98`（1.0.1 版標籤 `v1.0.1` 之後，只多了一個補上 LICENSE 著作權欄位的修正）為基礎修改。下方「台灣版修改說明」列出主要變更與所有修改過的檔案；說明結束處的分隔線以下是原作者的說明（簡體中文），描述的是原版的行為。
+> 本分支由 acer1204 於 2026 年 10 月 26 日起，以原作者 [Bai-Cute/big-blue-fish-desktop-pet](https://github.com/Bai-Cute/big-blue-fish-desktop-pet) 的 main 分支 commit `5eead98`（1.0.1 版標籤 `v1.0.1` 之後，只多了一個補上 LICENSE 著作權欄位的修正）為基礎修改。下方「台灣版修改說明」列出主要變更與所有修改過的檔案；說明結束處的分隔線以下是原作者的說明（簡體中文），描述的是原版的行為。
 
 ## 台灣版修改說明
 
-依 [Apache License 2.0](LICENSE) 第 4 條第 (b) 款，本節列出這個分支新增、刪除或修改的檔案，以及修改者與修改日期。修改過的程式碼、專案檔與設定檔（.cs、.xaml、.csproj、.ps1、.gitattributes，共 59 個）第一行都加註了修改聲明；`README.md` 與建置安裝檔時會一併打包的 [`code/THIRD-PARTY.md`](code/THIRD-PARTY.md) 則在開頭段落註明這是修改版。原作者的著作權聲明（Copyright 2026 Bai-Cute）與授權條款維持不變，本分支的修改同樣以 Apache-2.0 授權釋出。本分支並非由原作者維護，修改內容也未經原作者審閱或背書；使用時遇到問題，請到本分支的儲存庫 [acer1204/big-blue-fish-desktop-pet](https://github.com/acer1204/big-blue-fish-desktop-pet/issues) 回報，不要回報給原作者。
+依 [Apache License 2.0](LICENSE) 第 4 條第 (b) 款，本節列出這個分支新增、刪除或修改的檔案，以及修改者與修改日期。修改過的程式碼、專案檔、腳本與設定檔（.cs、.xaml、.csproj、.ps1、.py、.gitattributes，共 63 個）開頭都加註了修改聲明；`README.md` 與建置安裝檔時會一併打包的 [`code/THIRD-PARTY.md`](code/THIRD-PARTY.md) 則在開頭段落註明這是修改版。原作者的著作權聲明（Copyright 2026 Bai-Cute）與授權條款維持不變，本分支的修改同樣以 Apache-2.0 授權釋出。本分支並非由原作者維護，修改內容也未經原作者審閱或背書；使用時遇到問題，請到本分支的儲存庫 [acer1204/big-blue-fish-desktop-pet](https://github.com/acer1204/big-blue-fish-desktop-pet/issues) 回報，不要回報給原作者。
 
 ### 主要變更
 
@@ -20,6 +20,12 @@
 - **測試同步**：`code/tests/` 中比對介面文字的測試程式也隨之改為繁體中文。
 - **氣泡不出現簡體字**：Windows 版魚魚的氣泡文字（自己的模型、天氣、MCP 的 `say`／`say_next`、Hermes 橋接）在顯示前都會經過新增的 `CompanionTraditional`，用 [OpenCC](https://github.com/BYVoid/OpenCC) 1.4.2 的字典把簡體字轉成台灣繁體。整段都是簡體時，結果和 OpenCC 的 `s2twp` 相同（包括軟件→軟體這類台灣用語），另外修正了 OpenCC 會轉錯的「一起干杯」（幹杯）與「的士兵、的士林」（計程車）；繁體句子裡夾雜的簡體字只改那幾個字，原本就是繁體或英文的內容維持不變。模型邊產生邊顯示時，需要轉換的句子會等最後一段文字完整再顯示，避免轉到一半的字一閃而過。已知的取捨：為了修正常見的「以后、然后」，罕見用法「選后」也會變成「選後」。MCP 工具回傳給 Agent 的仍是原文。新增的 `code/tests/TraditionalTextVerification` 以 8591 筆語料驗證轉換結果。
 - **Hermes 對話橋接**：新增 `code/BigBlueFish.HermesBridge`（C#）與 `code/run-hermes-bridge.ps1`。雙擊魚魚在輸入框打的字，會交給本機的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) API 回答，回答再顯示在魚魚的氣泡裡。等待時魚魚會播放思考動作，氣泡也會即時顯示 Hermes 正在做什麼（例如「正在上網搜尋：…」「正在電腦上執行指令…」）和已經過的時間；MCP 外掛工具的進度會依伺服器與工具名稱自動產生，例如「正在用 Divebird 查詢下載」，之後新增的 MCP 伺服器也適用；同一個動作連續重複時會顯示次數（例如「第 12 次」），看得出 Hermes 是在重試而不是當掉。工作進行中輸入 `/stop` 會請 Hermes 立刻停止（連同它開出來的背景程序）；這時送出其他訊息，魚魚會先回覆一句，等目前的工作結束再處理。外部 Agent 的氣泡還在顯示時，魚魚不會自己開口把它蓋掉。Hermes 預設不會把 MCP 外掛工具全部直接列給模型，所以提示詞會要求它需要工具時先用 `tool_search` 查找、找到合適的外掛工具就優先使用，下載檔案或影片時優先使用 Divebird 下載管理員，下載前先核對標題或網址；同一個指令或工具失敗兩次就換方法，失敗三次就停下來詢問。同一段對話會延續上下文，連重新啟動橋接程式後也接得上；在輸入框打 `/new` 會開始新的對話，但 Hermes 寫進長期記憶的內容（例如被要求「記住」的事）不會因此清掉。
+- **魚魚自己的主動提醒**：Windows 版設定頁「說話與天氣」新增「主動提醒」：久坐（連續使用 30、45、60、90 或 120 分鐘後，預設 60 分鐘，也可以關閉）、用餐（三餐時間沿用「陪伴與外觀」的設定）、深夜（晚上 10 點到凌晨 2 點擇一，預設凌晨 0 點）、低電量（沒插電且電量剩 20%、10% 時）與下雨（需開啟天氣，6 小時內降雨機率 60% 以上）。提醒由魚魚本體依規則判斷，不需要模型或 Agent；使用者不在電腦前、前景是全螢幕程式、正在拖曳魚魚或 Agent 正在說話時，提醒會先等等。這些開關也能用 MCP 的 `update_settings` 調整。另外，原版在午餐時間播「吃晚餐」、晚餐時間播「吃午餐」，本分支改成各自在自己的用餐時間播放。
+- **新的 MCP 工具（Windows 版）**：`get_context` 讀取使用者此刻的狀況，包括時間、多久沒操作電腦、這次連續使用多久、電源與電量、前景程式（使用者關閉前景視窗偵測時不提供）、魚魚快取的天氣、畫面上開著的檔案總管資料夾，以及魚魚最近一次的主動提醒；它是唯讀的，不截圖也不連網。`find_on_screen` 依名稱找出畫面上看得到的桌面圖示（附對應的檔案）、視窗，以及視窗裡的按鈕、分頁、清單項目等介面元素，回傳位置與大小。`walk_to` 讓魚魚跑到畫面上的目標旁邊停下，不遮住目標，也可以一次依序跑過多個目標；使用者拖曳或點選魚魚時，她會停在當下的位置。使用者離開電腦 5 分鐘以上再回來時，MCP 會發出 `user_returned` 事件。Linux 版呼叫這三個工具時會回覆尚不支援，也沒有主動提醒。
+- **雙擊輸入框可以附加檔案**：用輸入框的附加按鈕、拖曳或 Ctrl+V 貼上，一次最多 10 個圖片、影片或檔案；貼上的圖片存在 `%LOCALAPPDATA%\BigBlueFish\attachments`。MCP 的 `user_message` 事件只帶本機路徑與檔案資訊，不帶檔案內容。Hermes 橋接程式會把每個檔案的路徑告訴 Hermes，圖片（最多 10 張）另外直接附給模型，太大的先縮小成 JPEG。
+- **Hermes 橋接：每日簡報、回來時的摘要、行程提醒與排程回報**：設定頁「Agent 與 MCP」新增「每天第一次坐下時講今日簡報」與「離開很久回來時說期間發生的事」（離開 30、60、120 或 240 分鐘以上，預設 60 分鐘）。簡報的內容由橋接程式自己蒐集：天氣、今天還要執行的 Hermes 排程、還沒說的排程結果、Hermes 在其他地方（例如 Telegram）的對話、離開期間錯過的用餐時間，以及今天剩下的 Google 日曆行程；Hermes 只負責把它們說成一段話，來不及或改去呼叫工具時，魚魚會改說橋接程式整理好的文字。離開期間大多開著全螢幕程式（看影片、玩遊戲）且沒有鎖定畫面時，不算離開。「說話與天氣」頁的「行程開始前提醒」（5、10、15 或 30 分鐘前，預設 10 分鐘）也由橋接程式在使用者在電腦前時說，整天的行程和已回覆不參加的邀請不提醒。Hermes 排程工作（cron）執行完的結果，橋接程式會讀出來讓魚魚說；使用者閒置 2 分鐘以上時先等，回來後由簡報先講。這些功能都只在執行橋接程式時才有。
+- **Google 日曆**：橋接程式透過 Hermes 的 `google-calendar` 技能讀取行程，授權沿用 Hermes 的 `google-workspace` 技能，只要日曆權限，橋接程式自己不保存 Google 的憑證。`google-calendar` 技能不在本儲存庫，需要另外替 Hermes 安裝並完成授權；沒有設定時，行程相關的功能會略過。
+- **橋接程式的安全閥與執行方式**：同一輪的工具呼叫失敗 6 次，或同一個呼叫重複 8 次，橋接程式就會請 Hermes 停下來，避免繞圈子。橋接程式改以 `dotnet BigBlueFish.HermesBridge.dll` 執行，不再產生 `.exe`，因為先前編譯出的 exe 曾被 Microsoft Defender 誤判為木馬並隔離。
 
 ### 使用 Hermes 對話橋接
 
@@ -57,21 +63,32 @@
 
 ### 修改過的檔案
 
-以下 100 個檔案由 acer1204 於 2026 年 10 月 26 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
+以下 121 個檔案由 acer1204 於 2026 年 10 月 26 日至 30 日新增、刪除或修改（相對於原作者儲存庫的 commit `5eead98`）。完整差異可以用 `git diff 5eead98 taiwan-edition` 檢視。
 
 <details>
 <summary>展開檔案清單</summary>
 
-**新增（37）**
+**新增（52）**
 
 - `code/BigBlueFish.HermesBridge/BigBlueFish.HermesBridge.csproj`
 - `code/BigBlueFish.HermesBridge/Bridge.cs`
+- `code/BigBlueFish.HermesBridge/BridgeState.cs`
+- `code/BigBlueFish.HermesBridge/Briefings.cs`
+- `code/BigBlueFish.HermesBridge/Calendar.cs`
+- `code/BigBlueFish.HermesBridge/CronReports.cs`
 - `code/BigBlueFish.HermesBridge/HermesChat.cs`
+- `code/BigBlueFish.HermesBridge/HermesLog.cs`
+- `code/BigBlueFish.HermesBridge/ImageShrink.cs`
 - `code/BigBlueFish.HermesBridge/PetLink.cs`
 - `code/BigBlueFish.HermesBridge/Program.cs`
 - `code/BigBlueFish.HermesBridge/ToolStatus.cs`
 - `code/BigBlueFish.HermesBridge/packages.lock.json`
+- `code/BigBlueFish.Windows/Companion/CompanionMcpAttachments.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionProactive.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionReminders.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionScreenSearch.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionTraditional.cs`
+- `code/BigBlueFish.Windows/Companion/CompanionWalk.cs`
 - `code/BigBlueFish.Windows/Res/Font/jf-openhuninn-2.1.ttf`
 - `code/BigBlueFish.Windows/assets/opencc/STCharacters.txt`
 - `code/BigBlueFish.Windows/assets/opencc/STPhrases.txt`
@@ -85,6 +102,10 @@
 - `code/licenses/OpenCC-Apache-2.0.txt`
 - `code/licenses/jf-open-huninn-OFL.txt`
 - `code/run-hermes-bridge.ps1`
+- `code/tests/HermesScenarioVerification/scenarios.py`
+- `code/tests/ReminderVerification/Program.cs`
+- `code/tests/ReminderVerification/ReminderVerification.csproj`
+- `code/tests/ReminderVerification/packages.lock.json`
 - `code/tests/TraditionalTextVerification/Program.cs`
 - `code/tests/TraditionalTextVerification/TraditionalTextVerification.csproj`
 - `code/tests/TraditionalTextVerification/corpora/mixed_cases.expected.txt`
@@ -107,7 +128,7 @@
 - `code/BigBlueFish.Windows/Res/Font/LemiXiaoNaiPaoTi.ttf`
 - `code/licenses/Lemi-Xiao-Nai-PaoTi.txt`
 
-**修改（61）**
+**修改（67）**
 
 - `.gitattributes`
 - `README.md`
@@ -117,6 +138,7 @@
 - `code/BigBlueFish.Linux/LinuxMcp.cs`
 - `code/BigBlueFish.Linux/LinuxPetWindow.cs`
 - `code/BigBlueFish.Linux/LinuxSettings.cs`
+- `code/BigBlueFish.Windows/App.xaml.cs`
 - `code/BigBlueFish.Windows/BigBlueFish.Windows.csproj`
 - `code/BigBlueFish.Windows/Companion/CompanionAnimationPolicy.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionAnimations.cs`
@@ -143,16 +165,20 @@
 - `code/BigBlueFish.Windows/Companion/CompanionWeather.cs`
 - `code/BigBlueFish.Windows/Companion/CompanionWindow.cs`
 - `code/BigBlueFish.Windows/MainWindow.xaml`
+- `code/BigBlueFish.Windows/assets/fish/animations.json`
 - `code/THIRD-PARTY.md`
 - `code/test.ps1`
 - `code/tests/AnimationUiVerification/Program.cs`
+- `code/tests/AnimationVerification/Program.cs`
 - `code/tests/ForegroundVerification/Program.cs`
 - `code/tests/InstallerVerification/DeploymentVerification.cs`
 - `code/tests/InstallerVerification/DownloadInterruptionVerification.cs`
+- `code/tests/LinuxVerification/verify.py`
 - `code/tests/McpProtocolVerification/Program.cs`
 - `code/tests/McpUiVerification/Program.cs`
 - `code/tests/OcrLayoutVerification/Program.cs`
 - `code/tests/OcrVerification/Program.cs`
+- `code/tests/OcrVerification/packages.lock.json`
 - `code/tests/PowerNoticeVerification/Program.cs`
 - `code/tests/RunnerVerification/LatencyVerification.cs`
 - `code/tests/RunnerVerification/MaintenanceVerification.cs`
@@ -169,6 +195,7 @@
 - `deployment/ModernUI.cs`
 - `deployment/UpdateService.cs`
 - `deployment/UpdateWindow.cs`
+- `tools/Import-AnimationRules.py`
 - `tools/Model-Helpers.ps1`
 
 </details>
