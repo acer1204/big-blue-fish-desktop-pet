@@ -1,10 +1,12 @@
+using System.Text.RegularExpressions;
+
 namespace BigBlueFish.HermesBridge;
 
 // What the speech bubble says while Hermes works: a short phrase per tool, plus the tool's own
 // one-line preview (search words, address, file name) where that helps. MCP tools of any server,
 // including ones added later, are described from their names: mcp__divebird__get_download reads
 // as 正在用 Divebird 查詢下載.
-internal static class ToolStatus
+internal static partial class ToolStatus
 {
     private const int PreviewLimit = 30;
 
@@ -48,6 +50,8 @@ internal static class ToolStatus
             "search_files" => With("正在搜尋檔案", detail),
             "write_file" or "patch" => With("正在寫入檔案", FileName(preview)),
             "terminal" or "process" or "process_manage" or "execute_code" => "正在電腦上執行指令",
+            // Its preview is whatever it types or the app name, which the bubble had better not echo.
+            "computer_use" => "正在用滑鼠鍵盤操作電腦",
             "vision_analyze" => "正在看圖片",
             "image_generate" => "正在畫圖",
             "delegate_task" => "正在請小幫手分頭處理",
@@ -62,13 +66,15 @@ internal static class ToolStatus
         };
     }
 
-    // mcp__<server>__<tool>, as Hermes names MCP tools; the pet's own server stays out of the bubble.
+    // mcp__<server>__<tool>, as Hermes names MCP tools; the pet's own server stays out of the bubble,
+    // except walk_to, where the bubble rides along with the fish and says why it suddenly runs off, and
+    // find_on_screen, which can take a few seconds.
     private static string? DescribeMcp(string tool)
     {
         var parts = tool.Split("__", 3);
         if (parts.Length < 3) return "正在使用外掛工具";
         var server = Words(parts[1]);
-        if (string.Join(' ', server) == "big blue fish") return null;
+        if (string.Join(' ', server) == "big blue fish") return parts[2] switch { "walk_to" => "正在跑過去", "find_on_screen" => "正在畫面上找", _ => null };
         string name = string.Join(' ', server.Select(word => char.ToUpperInvariant(word[0]) + word[1..]));
         return Action(Words(parts[2])) is { } action ? $"正在用 {name} {action}" : $"正在使用 {name} 的工具";
     }
@@ -118,6 +124,26 @@ internal static class ToolStatus
         int slash = path.LastIndexOfAny(['/', '\\']);
         return Short(slash >= 0 && slash < path.Length - 1 ? path[(slash + 1)..] : path);
     }
+
+    // What the agent wrote just before a tool call, when it reads as a plan the user can follow. A note
+    // to itself about code ("$_ 被 bash 吃掉了，改用腳本檔。", a tool or file name) stays out of the bubble;
+    // the tool's own phrase follows at once anyway.
+    internal static string? Narration(string? text) =>
+        string.IsNullOrWhiteSpace(text) || Technical().IsMatch(Abbreviation().Replace(text, "")) ? null : Short(text, 60);
+
+    // Shell and code symbols, snake_case or mcp__ names, file names with an extension, addresses and drive
+    // paths, camelCase members (state.lastWalk), PowerShell cmdlets by their verbs (Get-ChildItem, not
+    // Coca-Cola), dotted type names, :: and command-line switches (-Force, --force). \w takes in CJK too, so
+    // the edges are spelled out as ASCII lookarounds ("改用find.ps1執行", "在C:/Users找"), and 3.12 is not
+    // an extension.
+    [GeneratedRegex(@"[$`\\{}<>|=]|;(?=\S)|\w_\w|__|::|://|\w\.[A-Za-z][A-Za-z0-9]{0,3}(?![A-Za-z0-9])|\w\.[a-z]+[A-Z]|[A-Za-z]\.[A-Z][a-z]|(?<![A-Za-z])[A-Za-z]:/"
+        + @"|(?<![A-Za-z])(?:Get|Set|New|Remove|Start|Stop|Invoke|Select|Where|ForEach|Test|Out|Copy|Move|Add|Write|Read|Import|Export|Format|Convert(?:To|From)|Join|Split|Resolve|Measure|Sort|Group|Wait|Clear|Rename)-[A-Z]"
+        + @"|(?<![\w-])--?[A-Za-z]{2,}")]
+    private static partial Regex Technical();
+
+    // e.g., i.e., a.m. and p.m. would read as file names to Technical().
+    [GeneratedRegex(@"(?<![A-Za-z])(?:e\.g|i\.e|a\.m|p\.m)\.", RegexOptions.IgnoreCase)]
+    private static partial Regex Abbreviation();
 
     internal static string? Short(string? text, int limit = PreviewLimit)
     {

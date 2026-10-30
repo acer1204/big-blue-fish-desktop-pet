@@ -39,6 +39,12 @@
 - 新增 OpenCC 1.4.2 字典（Apache-2.0，著作權屬 Carbo Kuo（BYVoid）與 OpenCC 貢獻者），放在 `code/BigBlueFish.Windows/assets/opencc/` 並嵌入程式：`STCharacters`、`STPhrases`、`TSCharacters`、`TWPhrases`、`TWVariants`、`TWVariantsPhrases` 與官方 `ver.1.4.2` 的原檔完全相同；`STPhrases_GeneratedFromRegionalPhrases.txt` 是 OpenCC 建置時產生的檔案，取自官方 Python 套件並加上註明來源的檔頭。授權全文在 `code/licenses/OpenCC-Apache-2.0.txt`，來源與 SHA-256 雜湊值記錄在同資料夾的 `source.json`。
 - 台灣天氣資料只在執行時向中央氣象署查詢，不隨程式附帶天氣資料。顯名聲明：中央氣象署 2026 鄉鎮天氣預報（F-D0047）。此開放資料依政府資料開放授權條款 (Open Government Data License) 進行公眾釋出，使用者於遵守本條款各項規定之前提下，得利用之。政府資料開放授權條款：https://data.gov.tw/license 。中央氣象署並未推薦或背書本程式。
 - 台灣縣市與鄉鎮市區清單由新增的 `code/tools/import-taiwan-regions.py` 產生：從原有的 AreaCity 地區資料（MIT）取出台灣部分，以 OpenCC 轉換為繁體中文；金門縣與連江縣的鄉鎮因為 AreaCity 歸在福建省之下，直接寫在腳本中。
+- 補上角色動畫與形象的使用限制：106 段透明 WebM 動畫取自 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)（commit `eb74267`，和原作者使用的版本相同）。dsh-pet 的程式碼採 MIT 授權，但它的 README「许可」一節另外規定：
+  - 動畫、提示詞與原始影片等素材「允許開源使用，禁止商用」（原文「允许开源使用，禁止商用」）。
+  - 角色形象採 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hant)（姓名標示、非商業性、相同方式分享），不可以任何形式商業化。這個形象是社群二創的 DeepSeek「大肥魚」（鯨魚娘），不是 DeepSeek 官方形象：原型「溟月」出自 B 站 [@上善无形](https://space.bilibili.com/4456176)，DeepSeek 版（女僕鯨魚娘）由 B 站 [@ZipZipPipe](https://space.bilibili.com/4168597) 設計。
+  - 衍生、改版或換皮的作品，要在 GitHub 儲存庫、產品網站等公開管道附上 dsh-pet 的網址 <https://github.com/PC2005-cloud/dsh-pet>。
+
+  原作者的 README 與 `code/BigBlueFish.Windows/assets/fish/LICENSE.txt` 只寫了 MIT，沒有提到這些限制，本分支在此補上。本專案的 Apache-2.0 只適用於程式碼，不涵蓋這些動畫與角色形象；依上述規定，包含這些動畫的程式與安裝檔不得用於商業用途。
 - 版本、SHA-256 雜湊值與授權的詳細資訊已更新於[第三方聲明](code/THIRD-PARTY.md)（英文）。
 
 ### 尚未修改的部分
@@ -46,7 +52,7 @@
 - 安裝程式與解除安裝程式（`installer/`、`uninstaller/`）自己的文字，以及 Linux 版的設定、選單等介面仍為簡體中文；但它們共用的視窗框架、模型下載視窗、模型狀態與錯誤訊息，以及魚魚的回覆已改為繁體，所以畫面會繁簡混雜。Linux 版的氣泡字型也已改為 jf open 粉圓，對話框字型改為 Noto Sans CJK TC。Linux 版的氣泡沒有加上簡體轉繁體，也不會在外部 Agent 說話時暫停自己說話。Linux 版可以編譯，但沒有實際執行驗證。
 - 執行檔的產品名稱與檔案描述（工作管理員中顯示的名稱）、MCP 橋接程式 `BigBlueFish.Mcp` 的連線錯誤訊息，以及 `tools/` 底下建置與模型準備腳本的訊息仍為簡體中文（`Model-Helpers.ps1` 的模型來源名稱與錯誤訊息已改為繁體）。
 - 安裝後在 Windows「已安裝的應用程式」顯示的發行者與網址、Linux 套件的維護者與首頁，以及「檢查更新」的來源，目前仍指向原作者 Bai-Cute 及其儲存庫。在這些資訊改為指向本分支之前，本分支不提供編譯好的安裝檔，以免被誤認為原作者發行，或被「檢查更新」換回原版。
-- 本 README 分隔線以下的原作者說明、`docs/` 規格文件、`CHANGELOG.md`，以及建置安裝檔時附帶的 `release/README.md`（安裝說明）仍是原作者的內容，描述的是原版行為；其中「开源许可与第三方权利信息」一節仍列出原版的「乐米小奶泡体」字型，本分支實際附帶的字型與資料來源，請以上方「新增或移除的第三方內容」與 `code/THIRD-PARTY.md` 為準。
+- 本 README 分隔線以下的原作者說明、`docs/` 規格文件、`CHANGELOG.md`，以及建置安裝檔時附帶的 `release/README.md`（安裝說明）仍是原作者的內容，描述的是原版行為；其中「开源许可与第三方权利信息」一節仍列出原版的「乐米小奶泡体」字型，也只把角色動畫標為 MIT 授權；本分支實際附帶的字型、資料來源與素材的使用限制，請以上方「新增或移除的第三方內容」與 `code/THIRD-PARTY.md` 為準。
 - 科技新聞來源仍是 IT之家，提示詞會要求模型改寫成台灣繁體中文。
 
 ### 修改過的檔案

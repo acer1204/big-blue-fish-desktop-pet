@@ -1,3 +1,4 @@
+# Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 """Import the reviewed DSH Pet pack and freeze its 0.3.0 scheduling rules."""
 import json, shutil, sys
 from pathlib import Path
@@ -26,8 +27,9 @@ setrule('写代码', WorkKind='Coding', WorkWeight=1000)
 setrule('工作状态-忙碌点按|工作状态-思考冒泡|工作状态-清点归档', WorkKind='Working', WorkWeight=1000)
 setrule('吃Token|吃大闸蟹|吃年糕|吃重阳糕|吃长寿面|吃青团|吃饺子|涮火锅', Meal='Any', MealBoost=400)
 setrule('吃早餐', Meal='Breakfast', MealBoost=900)
-setrule('吃晚餐', Meal='Lunch', MealBoost=900)
-setrule('吃午餐', Meal='Dinner', MealBoost=900)
+# Taiwan edition: each meal clip at its own meal (lunch is a bowl of noodles, dinner a full table).
+setrule('吃午餐', Meal='Lunch', MealBoost=900)
+setrule('吃晚餐', Meal='Dinner', MealBoost=900)
 setrule('吃冰淇淋融化', SeasonOnly='Summer', Meal='Any', MealBoost=400)
 setrule('吃西瓜', SummerWeight=300)
 for name, festival, base in [('吃汤圆','Lantern',30),('吃粽子','DragonBoat',30),('吃腊八粥','Laba',100)]:

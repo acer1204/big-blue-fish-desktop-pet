@@ -497,6 +497,7 @@ internal sealed class CompanionBrain : IDisposable
     internal void RefreshWeather() => _ = weather.RefreshIfDue(WeatherRegionCode);
 
     private string WeatherContext() => weather.CachedContext(WeatherRegionCode);
+    internal string CachedWeather => WeatherContext();
 
     internal async Task<string> GenerateWeather(Action<string>? onPartial = null)
     {

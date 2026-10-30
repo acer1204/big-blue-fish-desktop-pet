@@ -37,16 +37,81 @@ internal static class CompanionNative
     internal static extern bool GetLastInputInfo(ref Input i);
     [DllImport("kernel32.dll")]
     internal static extern bool GetSystemPowerStatus(out Power p);
+    [DllImport("user32.dll")]
+    private static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
+    [DllImport("user32.dll")]
+    private static extern bool SwitchDesktop(IntPtr desktop);
+    [DllImport("user32.dll")]
+    private static extern bool CloseDesktop(IntPtr desktop);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     internal static extern IntPtr GetStyle(IntPtr h, int n);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     internal static extern IntPtr SetStyle(IntPtr h, int n, IntPtr v);
     [DllImport("user32.dll")]
     internal static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindow(string? className, string? title);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? className, string? title);
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(Point point, uint flags);
+    [DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
+    [DllImport("user32.dll")]
+    internal static extern uint GetDpiForSystem();
+    // Unchanged on monitors at the system DPI; on others they undo the scaling DWM applies to this System-aware process.
+    [DllImport("user32.dll")]
+    internal static extern bool PhysicalToLogicalPointForPerMonitorDPI(IntPtr window, ref Point point);
+    [DllImport("user32.dll")]
+    internal static extern bool LogicalToPhysicalPointForPerMonitorDPI(IntPtr window, ref Point point);
     [StructLayout(LayoutKind.Sequential)]
     internal struct Rect
     {
         public int Left, Top, Right, Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public Rect Monitor, Work;
+        public uint Flags;
+    }
+
+    // Work area of the monitor that contains the point, in the calling thread's DPI coordinates; false off every monitor.
+    internal static bool MonitorWorkArea(Point point, out Rect work)
+    {
+        work = default;
+        var monitor = MonitorFromPoint(point, 0 /* MONITOR_DEFAULTTONULL */);
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info)) return false;
+        work = info.Work;
+        return true;
+    }
+
+    // Effective DPI of the monitor that contains the point; null off every monitor or when it cannot be read.
+    internal static uint? MonitorDpi(Point point)
+    {
+        var monitor = MonitorFromPoint(point, 0 /* MONITOR_DEFAULTTONULL */);
+        return monitor != IntPtr.Zero && GetDpiForMonitor(monitor, 0 /* MDT_EFFECTIVE_DPI */, out uint dpi, out _) == 0 ? dpi : null;
+    }
+
+    // The desktop icon list. It lives under Progman, or under a WorkerW once a wallpaper slideshow has started;
+    // zero when it is missing or the icons are hidden.
+    internal static IntPtr DesktopListView()
+    {
+        var progman = FindWindow("Progman", null);
+        var view = progman == IntPtr.Zero ? IntPtr.Zero : FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        for (var worker = IntPtr.Zero; view == IntPtr.Zero;)
+        {
+            worker = FindWindowEx(IntPtr.Zero, worker, "WorkerW", null);
+            if (worker == IntPtr.Zero) return IntPtr.Zero;
+            view = FindWindowEx(worker, IntPtr.Zero, "SHELLDLL_DefView", null);
+        }
+        var list = FindWindowEx(view, IntPtr.Zero, "SysListView32", "FolderView");
+        return list != IntPtr.Zero && IsWindowVisible(list) ? list : IntPtr.Zero;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -69,6 +134,20 @@ internal static class CompanionNative
     }
 
     internal static bool OnAC => TestPowerOverride ?? (GetSystemPowerStatus(out var p) && p.AC == 1);
+    internal static int? TestBatteryOverride;
+    // The screen is locked (or the session is not on this console): the input desktop cannot be switched to then.
+    internal static bool Locked
+    {
+        get
+        {
+            var desktop = OpenInputDesktop(0, false, 0x0100 /* DESKTOP_SWITCHDESKTOP */);
+            if (desktop == IntPtr.Zero) return true;
+            try { return !SwitchDesktop(desktop); }
+            finally { CloseDesktop(desktop); }
+        }
+    }
+    // Null without a system battery (flag 128) or when Windows cannot tell (255).
+    internal static int? BatteryPercent => TestBatteryOverride ?? (GetSystemPowerStatus(out var p) && p.Battery is not (128 or 255) && p.Percent <= 100 ? p.Percent : null);
 
     internal static double IdleSeconds
     {
@@ -130,6 +209,20 @@ internal static class CompanionNative
         string name = "未知應用";
         try { using var process = Process.GetProcessById((int)id); name = process.ProcessName; } catch { }
         return "前臺輔助資訊（以螢幕文字為主要依據）：\n程式：" + name + "\n標題：" + title;
+    }
+
+    // get_context: the program and window title in front; null for the pet itself or no window at all.
+    internal static object? ForegroundApp(IntPtr handle)
+    {
+        if (handle == IntPtr.Zero) return null;
+        if (IsDesktopWindow(handle)) return new { process = "explorer", title = "Windows 桌面" };
+        GetWindowThreadProcessId(handle, out var id);
+        if (id == Environment.ProcessId) return null;
+        var title = new StringBuilder(512);
+        GetWindowText(handle, title, title.Capacity);
+        string name = "未知應用";
+        try { using var process = Process.GetProcessById((int)id); name = process.ProcessName; } catch { }
+        return new { process = name, title = Limit(title.ToString(), 200) };
     }
 
     internal static bool IsDesktopWindow(IntPtr handle)
@@ -250,8 +343,10 @@ internal static class CompanionNative
 
     private static string Limit(string value, int maxLength) => Normalize(value, maxLength);
 
+    internal static bool? TestFullscreenOverride;
     internal static bool IsFullscreen()
     {
+        if (TestFullscreenOverride is { } forced) return forced;
         var h = GetForegroundWindow();
         GetWindowThreadProcessId(h, out var id);
         if (id == Environment.ProcessId || !GetWindowRect(h, out var r))

@@ -5,7 +5,9 @@ using System.Text;
 
 namespace BigBlueFish.HermesBridge;
 
-internal sealed record BridgeOptions(string McpCommand, Uri HermesUrl, string ApiKey, string StatePath, string? Ask);
+// CalendarRefresh: how old the calendar read for event reminders may get; only tests set it (five minutes otherwise).
+internal sealed record BridgeOptions(string McpCommand, Uri HermesUrl, string ApiKey, string StatePath, string HermesHome, string HermesLogPath,
+    string? Ask, IReadOnlyList<Attachment> Attachments, string? Brief = null, TimeSpan? CalendarRefresh = null);
 
 internal static class Program
 {
@@ -19,7 +21,7 @@ internal static class Program
         catch (ArgumentException error)
         {
             Log.Write(error.Message);
-            Console.WriteLine("用法：BigBlueFish.HermesBridge [--mcp BigBlueFish.Mcp.exe 路徑] [--hermes-url http://127.0.0.1:8642] [--state 對話紀錄檔] [--ask 測試訊息]");
+            Console.WriteLine("用法：BigBlueFish.HermesBridge [--mcp BigBlueFish.Mcp.exe 路徑] [--hermes-url http://127.0.0.1:8642] [--state 對話紀錄檔] [--ask 測試訊息] [--attach 附件路徑（可重複）] [--brief daily|welcome:<分鐘>]");
             return 2;
         }
         using var stop = new CancellationTokenSource();
@@ -27,7 +29,11 @@ internal static class Program
         try
         {
             var bridge = new Bridge(options);
-            if (options.Ask != null) return await bridge.AskOnceAsync(options.Ask, stop.Token);
+            if (options.Ask != null) return await bridge.AskOnceAsync(new PetMessage(options.Ask, options.Attachments), stop.Token);
+            // --brief daily, or --brief welcome:<minutes away>
+            if (options.Brief is { } brief)
+                return await bridge.BriefOnceAsync(brief == "daily" ? Briefings.Kind.Daily : Briefings.Kind.Welcome,
+                    brief.StartsWith("welcome:", StringComparison.Ordinal) && int.TryParse(brief[8..], out var away) ? away : null, stop.Token);
             // Two listening bridges would answer every message twice.
             using var single = new Mutex(true, @"Local\BigBlueFish.HermesBridge", out bool first);
             if (!first) { Log.Write("另一個橋接程式已經在執行，這個就先結束。"); return 1; }
@@ -44,8 +50,9 @@ internal static class Program
 
     private static BridgeOptions ReadOptions(string[] args)
     {
-        string? mcp = Environment.GetEnvironmentVariable("BIGBLUEFISH_MCP"), ask = null, state = null;
+        string? mcp = Environment.GetEnvironmentVariable("BIGBLUEFISH_MCP"), ask = null, state = null, brief = null;
         string url = Environment.GetEnvironmentVariable("HERMES_API_URL") ?? "http://127.0.0.1:8642";
+        var attachments = new List<Attachment>();
         for (int i = 0; i < args.Length; i++)
         {
             string Value() => ++i < args.Length ? args[i] : throw new ArgumentException($"{args[i - 1]} 後面缺少參數。");
@@ -55,17 +62,34 @@ internal static class Program
                 case "--hermes-url": url = Value(); break;
                 case "--state": state = Value(); break;
                 case "--ask": ask = Value(); break;
+                case "--brief":
+                    brief = Value();
+                    if (brief != "daily" && !(brief.StartsWith("welcome:", StringComparison.Ordinal) && int.TryParse(brief[8..], out var minutes) && minutes > 0))
+                        throw new ArgumentException("--brief 要填 daily 或 welcome:<離開的分鐘數>。");
+                    break;
+                // Test path for files the way the pet sends them: the original path, as if picked.
+                case "--attach":
+                    string file = Path.GetFullPath(Value());
+                    if (!File.Exists(file)) throw new ArgumentException("附件不存在：" + file);
+                    if (attachments.Count == Attachment.Limit) throw new ArgumentException($"一則訊息最多只能附 {Attachment.Limit} 個檔案。");
+                    attachments.Add(Attachment.FromFile(file, "picker"));
+                    break;
                 default: throw new ArgumentException("不認得的參數：" + args[i]);
             }
         }
+        // Files alone are a message too, as when the user sends them without typing.
+        if (attachments.Count > 0) ask ??= "";
         if (string.IsNullOrWhiteSpace(mcp)) mcp = FindMcpBridge() ?? throw new ArgumentException("找不到 BigBlueFish.Mcp.exe，請用 --mcp 指定它的路徑。");
         if (!File.Exists(mcp)) throw new ArgumentException("BigBlueFish.Mcp.exe 不存在：" + mcp);
         var hermesUrl = CheckHermesUrl(url);
+        string home = Environment.GetEnvironmentVariable("HERMES_HOME")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes");
         var fromEnvironment = Environment.GetEnvironmentVariable(KeyVariable);
-        string key = (string.IsNullOrWhiteSpace(fromEnvironment) ? ReadHermesKey() : fromEnvironment.Trim())
+        string key = (string.IsNullOrWhiteSpace(fromEnvironment) ? ReadHermesKey(home) : fromEnvironment.Trim())
             ?? throw new ArgumentException($"找不到 Hermes 的 API_SERVER_KEY：請在 Hermes 的 .env 設定，或用 {KeyVariable} 環境變數提供。");
         state = Path.GetFullPath(state ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BigBlueFish", "hermes-bridge.json"));
-        return new(Path.GetFullPath(mcp), hermesUrl, key, state, ask);
+        home = Path.GetFullPath(home);
+        return new(Path.GetFullPath(mcp), hermesUrl, key, state, home, Path.Combine(home, "logs", "agent.log"), ask, attachments, brief);
     }
 
     // The bearer key goes with every chat request, so it may only travel to this machine or over https.
@@ -95,10 +119,8 @@ internal static class Program
     }
 
     // The key stays in Hermes' own .env; the bridge only reads it at startup and never prints it.
-    private static string? ReadHermesKey()
+    private static string? ReadHermesKey(string home)
     {
-        string home = Environment.GetEnvironmentVariable("HERMES_HOME")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes");
         string file = Path.Combine(home, ".env");
         if (!File.Exists(file)) return null;
         foreach (var line in File.ReadLines(file))

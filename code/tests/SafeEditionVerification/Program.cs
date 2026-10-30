@@ -21,7 +21,9 @@ static class Program
         try {
             string path=Path.GetFullPath(args[0]);Directory.CreateDirectory(path);
             File.Copy(Path.Combine(AppContext.BaseDirectory,"BigBlueFish.ico"),Path.Combine(path,"BigBlueFish.ico"),true);
-            File.WriteAllText(Path.Combine(path,"preferences.json"),"{\"ModelEnabled\":false,\"PublicInfo\":false,\"CheckUpdatesOnStartup\":false,\"McpEnabled\":true,\"PuppetMode\":true}");
+            // Brushed already today: between 23:00 and midnight AnimationBoundary would otherwise play the daily brushing instead of idle.
+            string today=DateTime.Now.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
+            File.WriteAllText(Path.Combine(path,"preferences.json"),"{\"ModelEnabled\":false,\"PublicInfo\":false,\"CheckUpdatesOnStartup\":false,\"McpEnabled\":true,\"PuppetMode\":true,\"LastBrushDate\":\""+today+"\"}");
             App.Args=["--test-mode"];var app=new App {ShutdownMode=ShutdownMode.OnExplicitShutdown};Environment.CurrentDirectory=path;
             pet=new MainWindow();pet.Show();Pump(500);
             object Read(string name)=>pet.GetType().GetField(name,Access)!.GetValue(pet)!;

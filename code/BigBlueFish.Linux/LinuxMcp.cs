@@ -73,6 +73,7 @@ internal sealed partial class LinuxPetWindow
                     string text = ControlTools.RequiredText(args, "text");
                     if (name == "say") SayExternal(text); else nextExternalText = text;
                     return ControlTools.Text(new { displayed = name == "say", pending = name == "say_next", text });
+                case "walk_to": case "find_on_screen": case "get_context": throw new NotSupportedException($"Linux 版尚不支援 {name}。"); // The tool list is shared with Windows.
                 default: throw new ArgumentException("未知 MCP 工具。");
             }
         });
@@ -94,6 +95,10 @@ internal sealed partial class LinuxPetWindow
                 "Scale" or "BubbleScale" => Range(.5, 2), "AnimationIntervalSeconds" => Range(30, 300),
                 "BreakfastHour" or "LunchHour" or "DinnerHour" => Range(0, 23), "BubbleDurationIndex" => Range(0, 7),
                 "SpeechMinMinutes" => item.Value is int minutes && CompanionPreferences.SpeechRanges.Any(r => r.Min == minutes),
+                "SitReminderMinutes" => item.Value is int sit && CompanionPreferences.SitReminderChoices.Contains(sit),
+                "LateReminderHour" => item.Value is int late && CompanionPreferences.LateReminderChoices.Contains(late),
+                "WelcomeBackMinutes" => item.Value is int away && CompanionPreferences.WelcomeBackChoices.Contains(away),
+                "EventReminderMinutes" => item.Value is int ahead && CompanionPreferences.EventReminderChoices.Contains(ahead),
                 "WeatherRegionCode" => item.Value is string region && CompanionRegions.District(region).Code == region && !CompanionRegions.IsTaiwan(CompanionRegions.District(region)),
                 "LastBrushDate" => item.Value == null || item.Value is string date && DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _),
                 "Left" or "Top" => item.Value == null || Range(-1000000, 1000000), _ => item.Value is bool };

@@ -21,7 +21,7 @@ public partial class MainWindow
             return;
         }
 
-        CancelMovement();
+        CancelWalk("settings"); CancelMovement();
         var w = new Window
         {
             Title = "大肥魚設定",
@@ -272,6 +272,27 @@ public partial class MainWindow
             SaveCompanion();
         };
         p.Children.Add(dwell);
+        p.Children.Add(new TextBlock { Text = "主動提醒", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 22, 0, 2) });
+        p.Children.Add(new TextBlock { Text = "魚魚自己會提醒，不需要模型或 Agent。你不在電腦前、全螢幕、拖曳魚魚或 Agent 正在說話時，提醒會先等等。", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray, Margin = new Thickness(0, 0, 0, 4) });
+        void Choice(string name, int[] values, Func<int, string> text, int current, Action<int> change)
+        {
+            var selector = new ComboBox { Margin = new Thickness(0, 6, 0, 6) };
+            foreach (var value in values) selector.Items.Add(name + "：" + text(value));
+            selector.SelectedIndex = Math.Max(0, Array.IndexOf(values, current));
+            System.Windows.Automation.AutomationProperties.SetName(selector, name);
+            selector.SelectionChanged += (_, _) => { if (selector.SelectedIndex >= 0) { change(values[selector.SelectedIndex]); SaveCompanion(); } };
+            p.Children.Add(selector);
+        }
+        Choice("久坐提醒", CompanionPreferences.SitReminderChoices, minutes => minutes == 0 ? "關閉" : $"連續使用 {minutes} 分鐘後", preferences.SitReminderMinutes, v => preferences.SitReminderMinutes = v);
+        Toggle("用餐提醒（三餐時間在「陪伴與外觀」設定）", preferences.MealReminder, v => preferences.MealReminder = v);
+        // One list for the switch and the hour: 關閉 turns LateReminder off and keeps the hour.
+        Choice("深夜提醒", [-1, .. CompanionPreferences.LateReminderChoices], hour => hour < 0 ? "關閉" : $"{hour:00}:00 到早上 5 點", preferences.LateReminder ? preferences.LateReminderHour : -1,
+            v => { preferences.LateReminder = v >= 0; if (v >= 0) preferences.LateReminderHour = v; });
+        Toggle("低電量提醒（沒插電且電量剩 20%、10% 時）", preferences.BatteryReminder, v => preferences.BatteryReminder = v);
+        Toggle("下雨提醒（需開啟天氣，6 小時內降雨機率 60% 以上）", preferences.RainReminder, v => preferences.RainReminder = v);
+        // Kept here with the other reminders, but said by the Hermes bridge from Google Calendar; the fish only stores it.
+        Choice("行程開始前提醒", CompanionPreferences.EventReminderChoices, minutes => minutes == 0 ? "關閉" : $"{minutes} 分鐘前", preferences.EventReminderMinutes, v => preferences.EventReminderMinutes = v);
+        p.Children.Add(new TextBlock { Text = "需要先替 Hermes 設定好 Google 日曆，由 Hermes 橋接程式在你在電腦前時說（沒有執行橋接程式時不會說）；整天的行程和已回覆不參加的邀請不提醒。", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.SlateGray, Margin = new Thickness(0, 0, 0, 4) });
         p = pages[2];
         var installModel = new Button { Content = "安裝模型", Margin = new Thickness(0, 8, 0, 8) };
         installModel.Click += (_, _) => OpenModelInstaller();

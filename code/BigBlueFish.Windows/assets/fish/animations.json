@@ -188,7 +188,7 @@
     "File": "吃午餐.webm",
     "Pool": "Event",
     "Weight": 100,
-    "Meal": "Dinner",
+    "Meal": "Lunch",
     "MealBoost": 900
   },
   {
@@ -220,7 +220,7 @@
     "File": "吃晚餐.webm",
     "Pool": "Event",
     "Weight": 100,
-    "Meal": "Lunch",
+    "Meal": "Dinner",
     "MealBoost": 900
   },
   {

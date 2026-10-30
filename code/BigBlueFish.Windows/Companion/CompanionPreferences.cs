@@ -1,6 +1,7 @@
 // Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 #if !COMPANION_LINUX
@@ -51,6 +52,25 @@ internal sealed class CompanionPreferences
     public int LunchHour { get; set; } = 12;
     public int DinnerHour { get; set; } = 18;
     public string? LastBrushDate { get; set; }
+    // The fish's own reminders (CompanionReminders, Windows only): minutes of use before a break reminder (0 = off)
+    // and the hour from which a late night is mentioned (-1 = off).
+    public int SitReminderMinutes { get; set; } = 60;
+    public bool MealReminder { get; set; } = true;
+    // On and off apart from the hour: with 0 meaning midnight, a small model took 0 for off (a scenario test, 2026-10-28).
+    public bool LateReminder { get; set; } = true;
+    public int LateReminderHour { get; set; } = 0;
+    public bool BatteryReminder { get; set; } = true;
+    public bool RainReminder { get; set; } = true;
+    internal static readonly int[] SitReminderChoices = [0, 30, 45, 60, 90, 120];
+    internal static readonly int[] LateReminderChoices = [22, 23, 0, 1, 2];
+    // Spoken by the Hermes bridge, not the fish: a briefing the first time the user sits down each day, and what
+    // happened while they were away after a break of at least this many minutes (0 = off).
+    public bool DailyBriefing { get; set; } = true;
+    public int WelcomeBackMinutes { get; set; } = 60;
+    internal static readonly int[] WelcomeBackChoices = [0, 30, 60, 120, 240];
+    // Also the bridge's, from the user's Google Calendar through Hermes: minutes before an event starts (0 = off).
+    public int EventReminderMinutes { get; set; } = 10;
+    internal static readonly int[] EventReminderChoices = [0, 5, 10, 15, 30];
 
     internal static readonly int[] BubbleDurations =
     {
@@ -139,6 +159,12 @@ internal sealed class CompanionPreferences
                     s.LunchHour = Math.Clamp(s.LunchHour, 0, 23);
                     s.DinnerHour = Math.Clamp(s.DinnerHour, 0, 23);
                     s.SpeechMinMinutes = NormalizeSpeechMinimum(s.SpeechMinMinutes);
+                    if (!SitReminderChoices.Contains(s.SitReminderMinutes)) s.SitReminderMinutes = 60;
+                    // -1 was off before LateReminder had a switch of its own.
+                    if (s.LateReminderHour == -1) s.LateReminder = false;
+                    if (!LateReminderChoices.Contains(s.LateReminderHour)) s.LateReminderHour = 0;
+                    if (!WelcomeBackChoices.Contains(s.WelcomeBackMinutes)) s.WelcomeBackMinutes = 60;
+                    if (!EventReminderChoices.Contains(s.EventReminderMinutes)) s.EventReminderMinutes = 10;
                     s.BubbleDurationIndex = Math.Clamp(s.BubbleDurationIndex, 0, BubbleDurations.Length - 1);
                     s.WeatherRegionCode = CompanionRegions.District(s.WeatherRegionCode).Code;
                     s.ModelSource = s.ModelSource == "Remote" ? "Remote" : "Local";

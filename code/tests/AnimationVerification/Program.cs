@@ -1,3 +1,4 @@
+// Modified by acer1204 on 2026-10-26 for the taiwan-edition fork of Bai-Cute/big-blue-fish-desktop-pet (Apache-2.0).
 using BigBlueFish.Windows;
 
 var directory = args.Length == 0 ? Path.GetFullPath("code/BigBlueFish.Windows/assets/fish") : args[0];
@@ -26,8 +27,9 @@ foreach (var name in new[]{"工作状态-忙碌点按","工作状态-思考冒�
 { Weight(name, daytime, 100, new(daytime, false, true, true)); Weight(name, daytime, 1000, new(daytime, true, true, false)); }
 Weight("工作状态-原地踱步张望", daytime, 1000);
 Weight("吃早餐", daytime.Date.AddHours(8), 1000);
-Weight("吃晚餐", daytime.Date.AddHours(12), 1000); Weight("吃午餐", daytime.Date.AddHours(18), 1000);
-Weight("吃午餐", daytime.Date.AddHours(12), 100); Weight("吃晚餐", daytime.Date.AddHours(18), 100);
+// Taiwan edition: each meal clip at its own meal (the lunch clip is a bowl of noodles, the dinner clip a full table).
+Weight("吃午餐", daytime.Date.AddHours(12), 1000); Weight("吃晚餐", daytime.Date.AddHours(18), 1000);
+Weight("吃晚餐", daytime.Date.AddHours(12), 100); Weight("吃午餐", daytime.Date.AddHours(18), 100);
 foreach (var name in new[]{"吃Token","吃大闸蟹","吃年糕","吃重阳糕","吃长寿面","吃青团","吃饺子","涮火锅"})
 { Weight(name, daytime, 100); Weight(name, daytime.Date.AddHours(11), 500); Weight(name, daytime.Date.AddHours(11.5), 500); Weight(name, daytime.Date.AddHours(13), 500); Weight(name, daytime.Date.AddHours(13.01), 100); }
 Weight("吃早餐", daytime.Date.AddHours(9), 1000); Weight("吃早餐", daytime.Date.AddHours(9.01), 100);

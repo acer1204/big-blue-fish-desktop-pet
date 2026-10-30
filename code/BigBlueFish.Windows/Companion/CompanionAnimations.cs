@@ -63,6 +63,7 @@ public partial class MainWindow
         foreach (var rule in animationPolicy.Rules.Where(r => r.Pool == "Click"))
             videoPlayer.Preload(Path.Combine(AnimationDirectory, rule.File));
         videoPlayer.Preload(Path.Combine(AnimationDirectory, animationPolicy.Find("被鼠标拖拽悬空反馈").File), 1.5);
+        PreloadWalk();
         companionReady = true;
         if (PuppetActive) PlayAnimation(animationPolicy.Find("待机呼吸休闲"), "PuppetIdle");
         else { PlayAnimation(animationPolicy.Find("女仆屈膝礼仪"), "Startup"); ShowGreetingNotice(WelcomeText(DateTime.Now)); }
@@ -86,6 +87,7 @@ public partial class MainWindow
     {
         if (companionClosed) return;
         if (exitAnimation) { exitReady = true; base.Close(); return; }
+        if (ContinueWalk()) return; // walk_to picks its next clip itself; queued play_action clips wait for the arrival.
         if (!dragging && !hiddenByUser && !fullscreenHidden && PlayQueuedMcpAction()) return;
         if (PuppetActive) { PlayAnimation(animationPolicy.Find("待机呼吸休闲"), "PuppetIdle"); return; }
         if (animationPhase == "Drag") return; // Hold the final suspended pose until mouse release.
@@ -153,9 +155,11 @@ public partial class MainWindow
         var fraction = Math.Clamp((seconds - lead) / (10 - lead - tail), 0, 1);
         Left = movementStart + (movementEnd - movementStart) * fraction;
     }
-    private void CancelMovement() { movementRule = null; anchor = new(Left, Top); }
+    // Callers with a reason of their own stop a walk first; anything else taking over the fish also ends it.
+    private void CancelMovement() { if (Walking) CancelWalk("cancelled"); movementRule = null; anchor = new(Left, Top); }
     private void ClickAnimation()
     {
+        CancelWalk("click"); // Even in puppet mode a click stops a walk where it is.
         if (PuppetActive || !companionReady || exitAnimation) return;
         CancelMovement();
         PlayAnimation(animationPolicy.Choose("Click", AnimationContext(), companionRandom), "Click");
@@ -173,6 +177,7 @@ public partial class MainWindow
     private void CompanionClosing(object? sender, CancelEventArgs e)
     {
         if (companionClosed) return;
+        CancelWalk("exit");
         if (PuppetActive || exitReady || !companionReady) { modelInstaller?.RequestClose(); updateWindow?.RequestClose(); return; }
         e.Cancel = true;
         if (exitAnimation) return;

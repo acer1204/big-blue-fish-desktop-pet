@@ -8,7 +8,8 @@ using System.Runtime.InteropServices;
 
 namespace BigBlueFish.Windows;
 
-internal sealed record CompanionWindowImage(string DataUrl, int Width, int Height)
+// Source: the physical-pixel rectangle of the virtual desktop the image shows, before any downscaling.
+internal sealed record CompanionWindowImage(string DataUrl, int Width, int Height, Rectangle Source = default)
 {
     internal void SaveJpeg(string path)
     {
@@ -27,7 +28,7 @@ internal static class CompanionScreenCapture
     [DllImport("user32.dll")]
     private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
 
-    private sealed class CaptureDpiScope : IDisposable
+    internal sealed class CaptureDpiScope : IDisposable
     {
         private readonly IntPtr previous;
         internal CaptureDpiScope()
@@ -108,7 +109,8 @@ internal static class CompanionScreenCapture
         return new CompanionWindowImage(
             (lossless ? "data:image/png;base64," : "data:image/jpeg;base64,") + Convert.ToBase64String(output.ToArray()),
             normalized.Width,
-            normalized.Height);
+            normalized.Height,
+            captureRect);
     }
 
     private static Bitmap Resize(Bitmap source, int maxDimension)
@@ -140,6 +142,6 @@ internal static class CompanionScreenCapture
         using var normalized = Resize(bitmap, maxDimension);
         using var output = new MemoryStream();
         normalized.Save(output, ImageFormat.Png);
-        return new("data:image/png;base64," + Convert.ToBase64String(output.ToArray()), normalized.Width, normalized.Height);
+        return new("data:image/png;base64," + Convert.ToBase64String(output.ToArray()), normalized.Width, normalized.Height, bounds);
     }
 }

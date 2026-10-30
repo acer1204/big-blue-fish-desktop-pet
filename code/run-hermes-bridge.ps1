@@ -9,4 +9,5 @@ if($LASTEXITCODE -ne 0){throw '橋接程式編譯失敗'}
 $bridgeArgs=@()
 if($McpCommand){$bridgeArgs+=@('--mcp',$McpCommand)}
 if($HermesUrl){$bridgeArgs+=@('--hermes-url',$HermesUrl)}
-& (Join-Path $PSScriptRoot 'BigBlueFish.HermesBridge/bin/Release/net10.0/BigBlueFish.HermesBridge.exe') @bridgeArgs
+# Without an .exe of its own (UseAppHost=false, see the project): the process shows up as dotnet running this dll.
+& $sdk (Join-Path $PSScriptRoot 'BigBlueFish.HermesBridge/bin/Release/net10.0-windows/BigBlueFish.HermesBridge.dll') @bridgeArgs

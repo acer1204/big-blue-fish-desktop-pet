@@ -222,6 +222,10 @@ internal sealed class CompanionWeather : IDisposable
             or KeyNotFoundException or ArgumentException or ObjectDisposedException)
         {
             if (CompanionRegions.IsTaiwan(region)) lastError = e is IOException ? e.Message : "暫時無法取得中央氣象署天氣資料";
+            // No answer at all (no network yet, just woken up, or a timeout): try again in two minutes, not an hour.
+            // An answer that was an error (a refused code, 404, 429, 5xx) keeps the hour.
+            if ((e is HttpRequestException { StatusCode: null } || e is OperationCanceledException) && !lifetime.IsCancellationRequested)
+                lock (sync) attempts[region.Code] = clock() - TimeSpan.FromMinutes(58);
         }
     }
 

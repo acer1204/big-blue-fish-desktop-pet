@@ -201,7 +201,7 @@ public partial class MainWindow
         PreviewMouseLeftButtonUp += CompanionUp;
         LostMouseCapture += (_, _) =>
         {
-            if (dragging) { dragging = false; if (dragged) PublishMcpInteraction("drag_end", new { Left, Top, cancelled = true }); FinishDragAnimation(); }
+            if (dragging) { dragging = false; CancelWalk(dragged ? "drag" : "click"); if (dragged) PublishMcpInteraction("drag_end", new { Left, Top, cancelled = true }); FinishDragAnimation(); }
         };
         Closing += CompanionClosing;
         Closed += (_, _) => ShutdownCompanion();
@@ -291,6 +291,7 @@ public partial class MainWindow
 
     private void CompanionDisplayChanged(object? s, EventArgs e) => Dispatcher.BeginInvoke(() =>
     {
+        CancelWalk("display_changed"); // Its target rectangle belonged to the old layout.
         ClampCompanion();
         anchor = new Point(Left, Top);
     });
@@ -351,11 +352,13 @@ public partial class MainWindow
             return;
         e.Handled = true;
         if (e.ClickCount == 2 && TryOpenMcpInput()) {
+            CancelWalk("click");
             PublishMcpInteraction("click", new { button = "left", count = 2, Left, Top });
             return;
         }
         dragging = true;
         dragged = false;
+        PressWalk(); // Stops at once; the release or the first drag movement reports click or drag.
         CancelMovement();
         CompanionNative.GetCursorPos(out var p);
         dragStart = new Point(p.X, p.Y);
@@ -374,6 +377,7 @@ public partial class MainWindow
         if (Math.Abs(dx) + Math.Abs(dy) > 4 && !dragged)
         {
             dragged = true;
+            CancelWalk("drag");
             PublishMcpInteraction("drag_start", new { Left, Top });
             if (!PuppetActive) PlayCompanion("drag");
         }
@@ -400,9 +404,9 @@ public partial class MainWindow
     private void PlayCompanion(string name)
     {
         if (!companionReady || exitAnimation) return;
-        if (name == "drag") { CancelMovement(); PlayAnimation(animationPolicy.Find("被鼠标拖拽悬空反馈"), "Drag"); return; }
+        if (name == "drag") { CancelWalk("drag"); CancelMovement(); PlayAnimation(animationPolicy.Find("被鼠标拖拽悬空反馈"), "Drag"); return; }
         var id = name switch { "idle" => "待机呼吸休闲", "wave" => "点击回应-元气挥手", "angry" => "点击回应-傲娇生气", "sleep" => "原地小憩沉眠", _ => name };
-        CancelMovement();
+        CancelWalk("preview"); CancelMovement();
         var rule = animationPolicy.Rules.FirstOrDefault(r => r.Id == id);
         if (rule != null) PlayAnimation(rule, "Preview");
     }
@@ -488,6 +492,7 @@ public partial class MainWindow
         lastFrame = now;
         if (companionClosed || exitAnimation)
             return;
+        ObserveActivity(now);
         if (preferences.PublicInfo) brain.RefreshWeather();
         if (App.Args.Contains("--test-mode") && now > diagnosticAt)
         {
@@ -577,6 +582,8 @@ public partial class MainWindow
                         }
                         break;
                     default:
+                        if (ReminderTestCommand(command))
+                            break;
                         if (command.StartsWith("event:"))
                             StartAnimationEvent(animationPolicy.Find(command[6..]));
                         else if (command.StartsWith("action:"))
@@ -601,6 +608,7 @@ public partial class MainWindow
         bool full = preferences.HideOnFullscreen && CompanionNative.IsFullscreen();
         if (full && !fullscreenHidden && !hiddenByUser)
         {
+            CancelWalk("hidden");
             fullscreenHidden = true;
             Hide();
             brain.CancelGeneration();
@@ -624,6 +632,8 @@ public partial class MainWindow
         // A bubble kept until the next sentence (no deadline) gives way once the agent stops refreshing it.
         if (externalBubble && bubble.Visibility == Visibility.Visible
             && (speech.IsTyping || bubbleUntil != DateTime.MaxValue || now - externalBubbleAt < ExternalBubbleHold))
+            return;
+        if (Remind(now))
             return;
         if (PuppetActive || now < nextSpeech || companionSettings != null || modelInstaller != null
             || !HasScheduledMcpSpeech && (speechRequestPending || brain.Busy || weatherRequestPending || !preferences.ModelEnabled || !brain.ModelAvailable || !brain.CanRunOnCurrentPower))
@@ -728,6 +738,7 @@ public partial class MainWindow
     private void HideCompanion()
     {
         if (companionClosed || exitAnimation || exitReady) return;
+        CancelWalk("hidden");
         hiddenByUser = true;
         speech.Cancel();
         if (brain.CanRunOnCurrentPower)
